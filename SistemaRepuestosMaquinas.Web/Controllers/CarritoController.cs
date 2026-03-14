@@ -6,7 +6,7 @@ using SistemaRepuestosMaquinas.Web.Services;
 namespace SistemaRepuestosMaquinas.Web.Controllers;
 public class CarritoController(ApiClient apiClient) : Controller
 {
-[HttpGet]
+ [HttpGet]
     public async Task<IActionResult> Index(int? idCliente, CancellationToken cancellationToken)
     {
         var vm = new CarritoPageViewModel

@@ -7,7 +7,7 @@ using SistemaRepuestosMaquinas.Web.Services;
 namespace SistemaRepuestosMaquinas.Web.Controllers;
 public class CuentaController(ApiClient apiClient) : Controller
 {
-[HttpGet]
+ [HttpGet]
     public IActionResult Index()
     {
         var vm = new CuentaPageViewModel

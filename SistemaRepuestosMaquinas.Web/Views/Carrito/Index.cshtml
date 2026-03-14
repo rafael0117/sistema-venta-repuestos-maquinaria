@@ -1,5 +1,101 @@
+@model SistemaRepuestosMaquinas.Web.Models.CarritoPageViewModel
 @{
     ViewData["Title"] = "Carrito";
 }
-<h1>Carrito</h1>
-<p>Vista base del módulo Carrito. Consumirá endpoints JWT de la API.</p>
+
+<h1 class="mb-3">Mi carrito</h1>
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form asp-action="SeleccionarCliente" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <div class="col-md-4">
+                <label class="form-label">Id Cliente</label>
+                <input class="form-control" type="number" name="idCliente" value="@Model.IdCliente" min="1" required />
+            </div>
+            <div class="col-md-3 align-self-end">
+                <button class="btn btn-secondary" type="submit">Cargar carrito</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">Agregar producto</div>
+    <div class="card-body">
+        <form asp-action="Agregar" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="IdCliente" />
+            <div class="col-md-4">
+                <label asp-for="IdProducto" class="form-label">Id Producto</label>
+                <input asp-for="IdProducto" class="form-control" type="number" min="1" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Cantidad" class="form-label"></label>
+                <input asp-for="Cantidad" class="form-control" type="number" min="1" />
+            </div>
+            <div class="col-md-3 align-self-end">
+                <button class="btn btn-primary" type="submit">Agregar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h4>Detalle</h4>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio Unitario</th>
+            <th>Subtotal</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model.Detalles)
+    {
+        <tr>
+            <td>@item.Producto (@item.IdProducto)</td>
+            <td>@item.Cantidad</td>
+            <td>S/ @item.PrecioUnitario</td>
+            <td>S/ @item.SubTotal</td>
+            <td>
+                <form asp-action="Eliminar" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="idCarritoDetalle" value="@item.IdCarritoDetalle" />
+                    <input type="hidden" name="idCliente" value="@Model.IdCliente" />
+                    <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<div class="card mt-3">
+    <div class="card-header">Checkout</div>
+    <div class="card-body">
+        <p class="fw-bold">Total: S/ @Model.Total</p>
+        <form asp-action="Checkout" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="IdCliente" />
+            <div class="col-md-5">
+                <label asp-for="DireccionEntrega" class="form-label"></label>
+                <input asp-for="DireccionEntrega" class="form-control" required />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="MetodoPago" class="form-label"></label>
+                <input asp-for="MetodoPago" class="form-control" required />
+            </div>
+            <div class="col-md-3 align-self-end">
+                <button class="btn btn-success" type="submit">Confirmar compra</button>
+            </div>
+        </form>
+    </div>
+</div>

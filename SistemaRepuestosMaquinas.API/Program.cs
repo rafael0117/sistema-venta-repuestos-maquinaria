@@ -5,6 +5,7 @@ using SistemaRepuestosMaquinas.Business.Interfaces;
 using SistemaRepuestosMaquinas.Business.Security;
 using SistemaRepuestosMaquinas.Business.Services;
 using SistemaRepuestosMaquinas.Data.Context;
+using SistemaRepuestosMaquinas.API.Infrastructure;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +40,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+await DatabaseInitializer.InitializeAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
 {

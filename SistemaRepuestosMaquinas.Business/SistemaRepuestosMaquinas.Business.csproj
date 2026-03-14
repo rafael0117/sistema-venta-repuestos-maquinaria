@@ -7,5 +7,9 @@
   <ItemGroup>
     <ProjectReference Include="..\SistemaRepuestosMaquinas.Entity\SistemaRepuestosMaquinas.Entity.csproj" />
     <ProjectReference Include="..\SistemaRepuestosMaquinas.Common\SistemaRepuestosMaquinas.Common.csproj" />
+    <ProjectReference Include="..\SistemaRepuestosMaquinas.Data\SistemaRepuestosMaquinas.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.6.2" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,38 @@
 @{
-    ViewData["Title"] = "Home";
+    ViewData["Title"] = "Inicio";
 }
-<h1>Home</h1>
-<p>Vista base del módulo Home. Consumirá endpoints JWT de la API.</p>
+
+<div class="text-center">
+    <h1 class="display-6">Sistema de venta de repuestos</h1>
+    <p class="lead">Tienda web + gestión administrativa para repuestos de maquinaria.</p>
+</div>
+
+<div class="row g-3 mt-2">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5>Catálogo</h5>
+                <p>Explora productos con búsqueda y paginación.</p>
+                <a class="btn btn-primary" asp-controller="Catalogo" asp-action="Index">Ir al catálogo</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5>Cuenta</h5>
+                <p>Regístrate o inicia sesión para operar con token JWT.</p>
+                <a class="btn btn-outline-primary" asp-controller="Cuenta" asp-action="Index">Ir a cuenta</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5>Carrito</h5>
+                <p>Gestiona productos y ejecuta checkout.</p>
+                <a class="btn btn-success" asp-controller="Carrito" asp-action="Index">Ir a carrito</a>
+            </div>
+        </div>
+    </div>
+</div>

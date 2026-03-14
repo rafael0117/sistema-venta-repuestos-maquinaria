@@ -1,5 +1,16 @@
-@{
-    ViewData["Title"] = "AdminProveedor";
-}
-<h1>AdminProveedor</h1>
-<p>Vista base del módulo AdminProveedor. Consumirá endpoints JWT de la API.</p>
+@model SistemaRepuestosMaquinas.Web.Models.AdminProveedorPageViewModel
+@{ ViewData["Title"] = "Admin Proveedores"; }
+<h1 class="mb-3">Admin · Proveedores</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError?"alert-danger":"alert-success")">@Model.Message</div> }
+<div class="card mb-3"><div class="card-header">Nuevo proveedor</div><div class="card-body">
+<form asp-action="Create" method="post" class="row g-2">@Html.AntiForgeryToken()
+<div class="col-md-2"><label class="form-label">RUC</label><input asp-for="Form.Ruc" class="form-control" required /></div>
+<div class="col-md-3"><label class="form-label">Razón Social</label><input asp-for="Form.RazonSocial" class="form-control" required /></div>
+<div class="col-md-2"><label class="form-label">Teléfono</label><input asp-for="Form.Telefono" class="form-control" /></div>
+<div class="col-md-3"><label class="form-label">Correo</label><input asp-for="Form.Correo" class="form-control" /></div>
+<div class="col-md-2"><label class="form-label">Dirección</label><input asp-for="Form.Direccion" class="form-control" /></div>
+<div class="col-md-3 align-self-end"><button class="btn btn-success" type="submit">Crear</button></div>
+</form></div></div>
+<table class="table table-striped"><thead><tr><th>Id</th><th>RUC</th><th>Razón Social</th><th>Teléfono</th><th></th></tr></thead><tbody>
+@foreach (var x in Model.Items){<tr><td>@x.IdProveedor</td><td>@x.Ruc</td><td>@x.RazonSocial</td><td>@x.Telefono</td><td><form asp-action="Delete" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@x.IdProveedor"/><button class="btn btn-danger btn-sm">Eliminar</button></form></td></tr>}
+</tbody></table>

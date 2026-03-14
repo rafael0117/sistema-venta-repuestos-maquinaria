@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\SistemaRepuestosMaquinas.Entity\SistemaRepuestosMaquinas.Entity.csproj" />
     <ProjectReference Include="..\SistemaRepuestosMaquinas.Common\SistemaRepuestosMaquinas.Common.csproj" />
   </ItemGroup>

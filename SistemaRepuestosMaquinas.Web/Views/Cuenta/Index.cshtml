@@ -2,8 +2,14 @@
 @{
     ViewData["Title"] = "Cuenta";
 }
-
-<h1 class="mb-3">Cuenta</h1>
+<section class="auth-hero mb-3">
+    <div>
+        <p class="eyebrow">ACCESO SEGURO</p>
+        <h1>Portal de clientes y distribuidores</h1>
+        <p class="text-muted">Inicia sesión para gestionar tu carrito, pedidos y operaciones de compra con seguridad JWT.</p>
+    </div>
+    <div class="hero-pill">Seguridad + Experiencia + Velocidad</div>
+</section>
 
 @if (!string.IsNullOrWhiteSpace(Model.Message))
 {
@@ -12,48 +18,54 @@
 
 <div class="row g-4">
     <div class="col-md-6">
-        <div class="card">
+        <div class="card auth-card auth-card-login">
             <div class="card-header">Iniciar sesión</div>
             <div class="card-body">
-                <form asp-action="Login" method="post">
+                <form asp-action="Login" method="post" class="auth-form">
                     @Html.AntiForgeryToken()
                     <div class="mb-2">
-                        <label asp-for="Login.Correo" class="form-label"></label>
-                        <input asp-for="Login.Correo" class="form-control" />
+                        <label asp-for="Login.Correo" class="form-label">Correo electrónico</label>
+                        <input asp-for="Login.Correo" class="form-control" placeholder="correo@empresa.com" />
+                        <span asp-validation-for="Login.Correo" class="field-validation-error"></span>
                     </div>
                     <div class="mb-3">
-                        <label asp-for="Login.Password" class="form-label"></label>
-                        <input asp-for="Login.Password" class="form-control" />
+                        <label asp-for="Login.Password" class="form-label">Contraseña</label>
+                        <input asp-for="Login.Password" class="form-control" placeholder="••••••••" />
+                        <span asp-validation-for="Login.Password" class="field-validation-error"></span>
                     </div>
-                    <button class="btn btn-primary" type="submit">Ingresar</button>
+                    <button class="btn btn-primary auth-btn" type="submit">Ingresar</button>
                 </form>
             </div>
         </div>
     </div>
 
     <div class="col-md-6">
-        <div class="card">
+        <div class="card auth-card auth-card-register">
             <div class="card-header">Crear cuenta</div>
             <div class="card-body">
-                <form asp-action="Register" method="post">
+                <form asp-action="Register" method="post" class="auth-form">
                     @Html.AntiForgeryToken()
                     <div class="mb-2">
-                        <label asp-for="Register.Nombres" class="form-label"></label>
-                        <input asp-for="Register.Nombres" class="form-control" />
+                        <label asp-for="Register.Nombres" class="form-label">Nombres</label>
+                        <input asp-for="Register.Nombres" class="form-control" placeholder="Nombres" />
+                        <span asp-validation-for="Register.Nombres" class="field-validation-error"></span>
                     </div>
                     <div class="mb-2">
-                        <label asp-for="Register.Apellidos" class="form-label"></label>
-                        <input asp-for="Register.Apellidos" class="form-control" />
+                        <label asp-for="Register.Apellidos" class="form-label">Apellidos</label>
+                        <input asp-for="Register.Apellidos" class="form-control" placeholder="Apellidos" />
+                        <span asp-validation-for="Register.Apellidos" class="field-validation-error"></span>
                     </div>
                     <div class="mb-2">
-                        <label asp-for="Register.Correo" class="form-label"></label>
-                        <input asp-for="Register.Correo" class="form-control" />
+                        <label asp-for="Register.Correo" class="form-label">Correo electrónico</label>
+                        <input asp-for="Register.Correo" class="form-control" placeholder="correo@empresa.com" />
+                        <span asp-validation-for="Register.Correo" class="field-validation-error"></span>
                     </div>
                     <div class="mb-3">
-                        <label asp-for="Register.Password" class="form-label"></label>
-                        <input asp-for="Register.Password" class="form-control" />
+                        <label asp-for="Register.Password" class="form-label">Contraseña</label>
+                        <input asp-for="Register.Password" class="form-control" placeholder="Mínimo 8 caracteres" />
+                        <span asp-validation-for="Register.Password" class="field-validation-error"></span>
                     </div>
-                    <button class="btn btn-success" type="submit">Registrarme</button>
+                    <button class="btn btn-success auth-btn" type="submit">Registrarme</button>
                 </form>
             </div>
         </div>

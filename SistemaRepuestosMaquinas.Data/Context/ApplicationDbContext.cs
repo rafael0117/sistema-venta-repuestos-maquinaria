@@ -27,6 +27,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<Producto>().HasIndex(x => x.Codigo).IsUnique();
         modelBuilder.Entity<Proveedor>().HasIndex(x => x.Ruc).IsUnique();
 
+        modelBuilder.Entity<Usuario>()
+            .HasOne(x => x.Cliente)
+            .WithOne(x => x.Usuario)
+            .HasForeignKey<Cliente>(x => x.IdUsuario);
+
         modelBuilder.Entity<CarritoDetalle>()
             .Property(x => x.SubTotal)
             .HasComputedColumnSql("[Cantidad] * [PrecioUnitario]");

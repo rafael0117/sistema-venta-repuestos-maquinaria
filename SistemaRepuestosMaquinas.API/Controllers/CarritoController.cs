@@ -13,7 +13,7 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 [Authorize]
 public class CarritoController(ApplicationDbContext context, ICulqiService culqiService) : ControllerBase
 {
- [HttpGet("cliente/{idCliente:int}")]
+[HttpGet("cliente/{idCliente:int}")]
     public async Task<IActionResult> Get(int idCliente, CancellationToken cancellationToken)
     {
         var carrito = await context.Carritos

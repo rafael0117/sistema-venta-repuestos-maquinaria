@@ -1,3 +1,10 @@
+@using SistemaRepuestosMaquinas.Common.Constants
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@{
+    var rol = HttpContextAccessor.HttpContext?.Session.GetString("rol");
+    var showAdmin = string.Equals(rol, Roles.Administrador, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(rol, Roles.Vendedor, StringComparison.OrdinalIgnoreCase);
+}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -15,6 +22,10 @@
                 <a asp-controller="Catalogo" asp-action="Index">Catálogo</a>
                 <a asp-controller="Carrito" asp-action="Index">Carrito</a>
                 <a asp-controller="Cuenta" asp-action="Index">Login / Registro</a>
+                @if (showAdmin)
+                {
+                    <a asp-controller="AdminDashboard" asp-action="Index">Dashboard Admin</a>
+                }
             </nav>
         </div>
     </header>

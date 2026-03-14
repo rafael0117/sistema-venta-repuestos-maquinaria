@@ -139,13 +139,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .WithMany()
             .HasForeignKey(x => x.IdProducto)
             .OnDelete(DeleteBehavior.Restrict);
-
       
         modelBuilder.Entity<Usuario>()
             .HasOne(x => x.Cliente)
             .WithOne(x => x.Usuario)
             .HasForeignKey<Cliente>(x => x.IdUsuario);
-
 
         modelBuilder.Entity<CarritoDetalle>()
             .Property(x => x.SubTotal)

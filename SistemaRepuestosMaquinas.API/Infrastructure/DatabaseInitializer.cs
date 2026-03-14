@@ -10,7 +10,7 @@ public static class DatabaseInitializer
         await using var scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var hasMigrations = (await context.Database.GetMigrationsAsync(cancellationToken)).Any();
+        var hasMigrations = (await context.Database.GetAppliedMigrationsAsync(cancellationToken)).Any();
         if (hasMigrations)
         {
             await context.Database.MigrateAsync(cancellationToken);

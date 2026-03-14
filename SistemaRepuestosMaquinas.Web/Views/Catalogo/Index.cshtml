@@ -1,5 +1,42 @@
+@model SistemaRepuestosMaquinas.Web.Models.CatalogoPageViewModel
 @{
-    ViewData["Title"] = "Catalogo";
+    ViewData["Title"] = "Catálogo";
 }
-<h1>Catalogo</h1>
-<p>Vista base del módulo Catalogo. Consumirá endpoints JWT de la API.</p>
+
+<h1 class="mb-3">Catálogo de repuestos</h1>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-6">
+        <input name="Texto" value="@Model.Texto" class="form-control" placeholder="Buscar por nombre o descripción" />
+    </div>
+    <div class="col-md-2">
+        <input name="PageSize" value="@Model.PageSize" type="number" min="1" max="100" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <input name="Page" value="@Model.Page" type="number" min="1" class="form-control" />
+    </div>
+    <div class="col-md-2 d-grid">
+        <button class="btn btn-primary" type="submit">Buscar</button>
+    </div>
+</form>
+
+<p class="text-muted">Total encontrados: <strong>@Model.Total</strong></p>
+
+<div class="row g-3">
+@foreach (var item in Model.Productos)
+{
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">@item.Nombre</h5>
+                <p class="card-text small mb-1"><strong>Código:</strong> @item.Codigo</p>
+                <p class="card-text small mb-1"><strong>Marca:</strong> @item.Marca</p>
+                <p class="card-text small mb-1"><strong>Categoría:</strong> @item.Categoria</p>
+                <p class="card-text">@item.Descripcion</p>
+                <p class="fw-bold text-success mb-1">S/ @item.PrecioVenta</p>
+                <p class="small text-muted">Stock: @item.Stock</p>
+            </div>
+        </div>
+    </div>
+}
+</div>

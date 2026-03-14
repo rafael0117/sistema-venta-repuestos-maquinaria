@@ -1,5 +1,13 @@
-@{
-    ViewData["Title"] = "AdminCategoria";
-}
-<h1>AdminCategoria</h1>
-<p>Vista base del módulo AdminCategoria. Consumirá endpoints JWT de la API.</p>
+@model SistemaRepuestosMaquinas.Web.Models.AdminCategoriaPageViewModel
+@{ ViewData["Title"] = "Admin Categorías"; }
+<h1 class="mb-3">Admin · Categorías</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError?"alert-danger":"alert-success")">@Model.Message</div> }
+<div class="card mb-3"><div class="card-header">Nueva categoría</div><div class="card-body">
+<form asp-action="Create" method="post" class="row g-2">@Html.AntiForgeryToken()
+<div class="col-md-4"><label class="form-label">Nombre</label><input asp-for="Form.Nombre" class="form-control" required /></div>
+<div class="col-md-6"><label class="form-label">Descripción</label><input asp-for="Form.Descripcion" class="form-control" /></div>
+<div class="col-md-2 align-self-end"><button class="btn btn-success" type="submit">Crear</button></div>
+</form></div></div>
+<table class="table table-striped"><thead><tr><th>Id</th><th>Nombre</th><th>Descripción</th><th></th></tr></thead><tbody>
+@foreach (var x in Model.Items){<tr><td>@x.IdCategoria</td><td>@x.Nombre</td><td>@x.Descripcion</td><td><form asp-action="Delete" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@x.IdCategoria"/><button class="btn btn-danger btn-sm">Eliminar</button></form></td></tr>}
+</tbody></table>

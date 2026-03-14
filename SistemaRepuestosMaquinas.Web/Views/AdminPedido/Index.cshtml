@@ -1,0 +1,7 @@
+@model SistemaRepuestosMaquinas.Web.Models.AdminPedidoPageViewModel
+@{ ViewData["Title"] = "Admin Pedidos"; }
+<h1 class="mb-3">Admin · Pedidos</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError?"alert-danger":"alert-success")">@Model.Message</div> }
+<table class="table table-striped"><thead><tr><th>Id</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Cambiar</th></tr></thead><tbody>
+@foreach (var x in Model.Items){<tr><td>@x.IdPedido</td><td>@x.IdCliente</td><td>@x.FechaPedido</td><td>S/ @x.Total</td><td>@x.EstadoPedido</td><td><form asp-action="CambiarEstado" method="post" class="row g-2">@Html.AntiForgeryToken()<input type="hidden" name="idPedido" value="@x.IdPedido"/><input type="text" name="estadoPedido" class="form-control" value="@x.EstadoPedido" /><button class="btn btn-primary btn-sm">Guardar</button></form></td></tr>}
+</tbody></table>

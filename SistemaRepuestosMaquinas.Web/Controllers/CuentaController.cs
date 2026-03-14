@@ -5,10 +5,9 @@ using SistemaRepuestosMaquinas.Web.Models;
 using SistemaRepuestosMaquinas.Web.Services;
 
 namespace SistemaRepuestosMaquinas.Web.Controllers;
-
 public class CuentaController(ApiClient apiClient) : Controller
 {
-     [HttpGet]
+[HttpGet]
     public IActionResult Index()
     {
         var vm = new CuentaPageViewModel
@@ -34,7 +33,21 @@ public class CuentaController(ApiClient apiClient) : Controller
             });
         }
 
-        var response = await apiClient.PostAsync("api/auth/login", login, cancellationToken);
+        HttpResponseMessage response;
+        try
+        {
+            response = await apiClient.PostAsync("api/auth/login", login, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return View("Index", new CuentaPageViewModel
+            {
+                Login = login,
+                Message = "No hay conexión con la API (verifica que esté ejecutándose en la URL configurada).",
+                IsError = true
+            });
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             var message = await TryReadMessageAsync(response, "Credenciales inválidas. Revisa tu correo y contraseña.", cancellationToken);
@@ -62,7 +75,7 @@ public class CuentaController(ApiClient apiClient) : Controller
 
         TempData["Message"] = $"Bienvenido, sesión iniciada ({auth.Rol}).";
         TempData["IsError"] = "0";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction("Index", "Catalogo");
     }
 
     [HttpPost]
@@ -79,7 +92,21 @@ public class CuentaController(ApiClient apiClient) : Controller
             });
         }
 
-        var response = await apiClient.PostAsync("api/auth/register", register, cancellationToken);
+        HttpResponseMessage response;
+        try
+        {
+            response = await apiClient.PostAsync("api/auth/register", register, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return View("Index", new CuentaPageViewModel
+            {
+                Register = register,
+                Message = "No hay conexión con la API (verifica que esté ejecutándose en la URL configurada).",
+                IsError = true
+            });
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             var message = await TryReadMessageAsync(response, "No se pudo registrar la cuenta. Verifica el correo.", cancellationToken);

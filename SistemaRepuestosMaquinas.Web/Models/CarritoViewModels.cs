@@ -6,7 +6,9 @@ public class CarritoPageViewModel
     public int? IdProducto { get; set; }
     public int Cantidad { get; set; } = 1;
     public string? DireccionEntrega { get; set; }
-    public string? MetodoPago { get; set; }
+    public string? MetodoPago { get; set; } = "CULQI";
+    public string? CulqiToken { get; set; }
+    public string? EmailPago { get; set; }
     public decimal Total { get; set; }
     public string? Message { get; set; }
     public bool IsError { get; set; }

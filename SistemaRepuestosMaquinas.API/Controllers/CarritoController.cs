@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaRepuestosMaquinas.Business.DTOs;
+using SistemaRepuestosMaquinas.API.Services;
 using SistemaRepuestosMaquinas.Data.Context;
 using SistemaRepuestosMaquinas.Entity;
 
@@ -10,9 +11,9 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CarritoController(ApplicationDbContext context) : ControllerBase
+public class CarritoController(ApplicationDbContext context, ICulqiService culqiService) : ControllerBase
 {
-    [HttpGet("cliente/{idCliente:int}")]
+ [HttpGet("cliente/{idCliente:int}")]
     public async Task<IActionResult> Get(int idCliente, CancellationToken cancellationToken)
     {
         var carrito = await context.Carritos
@@ -127,13 +128,32 @@ public class CarritoController(ApplicationDbContext context) : ControllerBase
                 return BadRequest(new { message = $"Stock insuficiente para producto {item.IdProducto}." });
         }
 
+        var totalPedido = carrito.Detalles.Sum(x => x.Cantidad * x.PrecioUnitario);
+
+        if (request.MetodoPago.Equals("CULQI", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(request.CulqiToken))
+                return BadRequest(new { message = "Falta el token de Culqi para procesar el pago." });
+
+            var culqiResult = await culqiService.CreateChargeAsync(
+                new CulqiChargeRequest(
+                    Total: totalPedido,
+                    SourceId: request.CulqiToken,
+                    Email: request.EmailPago ?? "cliente@demo.com",
+                    IdCliente: idCliente),
+                cancellationToken);
+
+            if (!culqiResult.IsSuccess)
+                return BadRequest(new { message = culqiResult.Message });
+        }
+
         var pedido = new Pedido
         {
             IdCliente = idCliente,
             DireccionEntrega = request.DireccionEntrega,
             MetodoPago = request.MetodoPago,
-            EstadoPedido = "Pendiente",
-            Total = carrito.Detalles.Sum(x => x.Cantidad * x.PrecioUnitario),
+            EstadoPedido = request.MetodoPago.Equals("CULQI", StringComparison.OrdinalIgnoreCase) ? "Pagado" : "Pendiente",
+            Total = totalPedido,
             Detalles = carrito.Detalles.Select(x => new PedidoDetalle
             {
                 IdProducto = x.IdProducto,

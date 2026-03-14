@@ -4,10 +4,9 @@ using SistemaRepuestosMaquinas.Web.Models;
 using SistemaRepuestosMaquinas.Web.Services;
 
 namespace SistemaRepuestosMaquinas.Web.Controllers;
-
 public class CarritoController(ApiClient apiClient) : Controller
 {
-    [HttpGet]
+ [HttpGet]
     public async Task<IActionResult> Index(int? idCliente, CancellationToken cancellationToken)
     {
         var vm = new CarritoPageViewModel
@@ -72,6 +71,12 @@ public class CarritoController(ApiClient apiClient) : Controller
         if (!model.IdCliente.HasValue || string.IsNullOrWhiteSpace(model.DireccionEntrega) || string.IsNullOrWhiteSpace(model.MetodoPago))
             return RedirectWithMessage("Completa IdCliente, dirección y método de pago.", true, model.IdCliente);
 
+        if (model.MetodoPago.Equals("CULQI", StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrWhiteSpace(model.CulqiToken) || string.IsNullOrWhiteSpace(model.EmailPago)))
+        {
+            return RedirectWithMessage("Para Culqi debes ingresar EmailPago y CulqiToken (source_id).", true, model.IdCliente);
+        }
+
         var token = HttpContext.Session.GetString("jwt");
         apiClient.AttachJwt(token);
 
@@ -79,7 +84,9 @@ public class CarritoController(ApiClient apiClient) : Controller
         {
             IdCliente = model.IdCliente.Value,
             model.DireccionEntrega,
-            model.MetodoPago
+            model.MetodoPago,
+            model.CulqiToken,
+            model.EmailPago
         }, cancellationToken);
 
         return response.IsSuccessStatusCode

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Sistema Repuestos</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="topbar">
+        <div class="container nav-wrap">
+            <a class="brand" asp-controller="Home" asp-action="Index">⚙️ SistemaRepuestos</a>
+            <nav class="nav-links">
+                <a asp-controller="Home" asp-action="Index">Inicio</a>
+                <a asp-controller="Catalogo" asp-action="Index">Catálogo</a>
+                <a asp-controller="Carrito" asp-action="Index">Carrito</a>
+                <a asp-controller="Cuenta" asp-action="Index">Cuenta</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container content">
+        @RenderBody()
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© @DateTime.Now.Year SistemaRepuestosMaquinas · Plataforma de venta de repuestos</p>
+        </div>
+    </footer>
+</body>
+</html>

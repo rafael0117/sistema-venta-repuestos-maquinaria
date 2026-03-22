@@ -11,10 +11,9 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CarritoController(ApplicationDbContext context, ICulqiService culqiService) : ControllerBase
+public class CarritoController(ApplicationDbContext context, IMercadoPagoService mercadoPagoService) : ControllerBase
 {
     [HttpGet("cliente/{idCliente:int}")]
-[HttpGet("cliente/{idCliente:int}")]
     public async Task<IActionResult> Get(int idCliente, CancellationToken cancellationToken)
     {
         var carrito = await context.Carritos
@@ -131,21 +130,26 @@ public class CarritoController(ApplicationDbContext context, ICulqiService culqi
 
         var totalPedido = carrito.Detalles.Sum(x => x.Cantidad * x.PrecioUnitario);
 
-        if (request.MetodoPago.Equals("CULQI", StringComparison.OrdinalIgnoreCase))
+        if (request.MetodoPago.Equals("MERCADO_PAGO", StringComparison.OrdinalIgnoreCase))
         {
-            if (string.IsNullOrWhiteSpace(request.CulqiToken))
-                return BadRequest(new { message = "Falta el token de Culqi para procesar el pago." });
+            if (string.IsNullOrWhiteSpace(request.MercadoPagoToken) || string.IsNullOrWhiteSpace(request.PaymentMethodId))
+                return BadRequest(new { message = "Faltan datos de Mercado Pago para procesar el pago." });
 
-            var culqiResult = await culqiService.CreateChargeAsync(
-                new CulqiChargeRequest(
+            var mercadoPagoResult = await mercadoPagoService.CreatePaymentAsync(
+                new MercadoPagoChargeRequest(
                     Total: totalPedido,
-                    SourceId: request.CulqiToken,
+                    Token: request.MercadoPagoToken,
+                    PaymentMethodId: request.PaymentMethodId,
+                    Installments: request.Installments ?? 1,
                     Email: request.EmailPago ?? "cliente@demo.com",
-                    IdCliente: idCliente),
+                    IdCliente: idCliente,
+                    IssuerId: request.IssuerId,
+                    IdentificationType: request.IdentificationType,
+                    IdentificationNumber: request.IdentificationNumber),
                 cancellationToken);
 
-            if (!culqiResult.IsSuccess)
-                return BadRequest(new { message = culqiResult.Message });
+            if (!mercadoPagoResult.IsSuccess)
+                return BadRequest(new { message = mercadoPagoResult.Message, mercadoPagoResult.Status, mercadoPagoResult.StatusDetail });
         }
 
         var pedido = new Pedido
@@ -153,7 +157,7 @@ public class CarritoController(ApplicationDbContext context, ICulqiService culqi
             IdCliente = idCliente,
             DireccionEntrega = request.DireccionEntrega,
             MetodoPago = request.MetodoPago,
-            EstadoPedido = request.MetodoPago.Equals("CULQI", StringComparison.OrdinalIgnoreCase) ? "Pagado" : "Pendiente",
+            EstadoPedido = request.MetodoPago.Equals("MERCADO_PAGO", StringComparison.OrdinalIgnoreCase) ? "Pagado" : "Pendiente",
             Total = totalPedido,
             Detalles = carrito.Detalles.Select(x => new PedidoDetalle
             {
@@ -177,5 +181,4 @@ public class CarritoController(ApplicationDbContext context, ICulqiService culqi
 
     public record AddCarritoItemRequest(int IdProducto, int Cantidad);
     public record UpdateCarritoItemRequest(int Cantidad);
-}
 }

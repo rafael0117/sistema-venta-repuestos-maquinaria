@@ -5,6 +5,10 @@ using SistemaRepuestosMaquinas.Web.Models;
 using SistemaRepuestosMaquinas.Web.Services;
 
 namespace SistemaRepuestosMaquinas.Web.Controllers;
+
+public class CuentaController(ApiClient apiClient) : Controller
+{
+    [HttpGet]
 public class CuentaController(ApiClient apiClient) : Controller
 {
  [HttpGet]
@@ -149,4 +153,5 @@ public class CuentaController(ApiClient apiClient) : Controller
 
     private sealed record AuthResponseDto(string Token, DateTime Expiration, string Rol);
     private sealed record ErrorDto(string? Message);
+}
 }

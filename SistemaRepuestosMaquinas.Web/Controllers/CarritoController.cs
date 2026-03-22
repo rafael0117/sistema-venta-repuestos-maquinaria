@@ -4,6 +4,10 @@ using SistemaRepuestosMaquinas.Web.Models;
 using SistemaRepuestosMaquinas.Web.Services;
 
 namespace SistemaRepuestosMaquinas.Web.Controllers;
+
+public class CarritoController(ApiClient apiClient) : Controller
+{
+    [HttpGet]
 public class CarritoController(ApiClient apiClient) : Controller
 {
  [HttpGet]
@@ -71,6 +75,13 @@ public class CarritoController(ApiClient apiClient) : Controller
         if (!model.IdCliente.HasValue || string.IsNullOrWhiteSpace(model.DireccionEntrega) || string.IsNullOrWhiteSpace(model.MetodoPago))
             return RedirectWithMessage("Completa IdCliente, dirección y método de pago.", true, model.IdCliente);
 
+        if (model.MetodoPago.Equals("MERCADO_PAGO", StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrWhiteSpace(model.MercadoPagoToken) ||
+             string.IsNullOrWhiteSpace(model.PaymentMethodId) ||
+             !model.Installments.HasValue || model.Installments.Value <= 0 ||
+             string.IsNullOrWhiteSpace(model.EmailPago)))
+        {
+            return RedirectWithMessage("Para Mercado Pago debes ingresar EmailPago, MercadoPagoToken, PaymentMethodId e Installments válidos.", true, model.IdCliente);
         if (model.MetodoPago.Equals("CULQI", StringComparison.OrdinalIgnoreCase) &&
             (string.IsNullOrWhiteSpace(model.CulqiToken) || string.IsNullOrWhiteSpace(model.EmailPago)))
         {
@@ -85,6 +96,13 @@ public class CarritoController(ApiClient apiClient) : Controller
             IdCliente = model.IdCliente.Value,
             model.DireccionEntrega,
             model.MetodoPago,
+            model.MercadoPagoToken,
+            model.PaymentMethodId,
+            model.Installments,
+            model.IssuerId,
+            model.EmailPago,
+            model.IdentificationType,
+            model.IdentificationNumber
             model.CulqiToken,
             model.EmailPago
         }, cancellationToken);
@@ -149,4 +167,5 @@ public class CarritoController(ApiClient apiClient) : Controller
         public decimal PrecioUnitario { get; set; }
         public decimal SubTotal { get; set; }
     }
+}
 }

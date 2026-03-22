@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Cuenta";
 }
+
 <section class="auth-hero mb-3">
     <div>
         <p class="eyebrow">ACCESO SEGURO</p>
@@ -75,4 +76,5 @@
 <form asp-action="Logout" method="post" class="mt-3">
     @Html.AntiForgeryToken()
     <button type="submit" class="btn btn-outline-secondary">Cerrar sesión</button>
+</form>
 </form>

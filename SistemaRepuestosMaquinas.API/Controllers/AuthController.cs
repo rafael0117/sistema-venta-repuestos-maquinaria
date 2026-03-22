@@ -10,9 +10,27 @@ public class AuthController(IAuthService authService) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
-        => Ok(await authService.RegisterClienteAsync(request, cancellationToken));
+    {
+        try
+        {
+            return Ok(await authService.RegisterClienteAsync(request, cancellationToken));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
-        => Ok(await authService.LoginAsync(request, cancellationToken));
+    {
+        try
+        {
+            return Ok(await authService.LoginAsync(request, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
 }

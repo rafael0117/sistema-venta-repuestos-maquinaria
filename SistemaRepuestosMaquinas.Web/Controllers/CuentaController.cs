@@ -9,6 +9,9 @@ namespace SistemaRepuestosMaquinas.Web.Controllers;
 public class CuentaController(ApiClient apiClient) : Controller
 {
     [HttpGet]
+public class CuentaController(ApiClient apiClient) : Controller
+{
+ [HttpGet]
     public IActionResult Index()
     {
         var vm = new CuentaPageViewModel
@@ -150,4 +153,5 @@ public class CuentaController(ApiClient apiClient) : Controller
 
     private sealed record AuthResponseDto(string Token, DateTime Expiration, string Rol);
     private sealed record ErrorDto(string? Message);
+}
 }

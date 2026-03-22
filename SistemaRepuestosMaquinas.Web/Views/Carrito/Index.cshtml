@@ -121,10 +121,21 @@
             <div class="col-md-3">
                 <label asp-for="IdentificationNumber" class="form-label">Doc. número</label>
                 <input asp-for="IdentificationNumber" class="form-control" placeholder="12345678" />
+                <input asp-for="MetodoPago" class="form-control" placeholder="CULQI o CONTRAENTREGA" required />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="EmailPago" class="form-label">Email pago (Culqi)</label>
+                <input asp-for="EmailPago" class="form-control" placeholder="cliente@correo.com" />
+            </div>
+            <div class="col-md-5">
+                <label asp-for="CulqiToken" class="form-label">Culqi token / source_id</label>
+                <input asp-for="CulqiToken" class="form-control" placeholder="src_test_xxxxx" />
+                <p class="small text-muted mb-1">Si usas CULQI, pega aquí el source_id generado en frontend según docs de Culqi.</p>
             </div>
             <div class="col-md-3 align-self-end">
                 <button class="btn btn-success" type="submit">Confirmar compra</button>
             </div>
         </form>
     </div>
+</div>
 </div>

@@ -1,0 +1,25 @@
+@model SistemaRepuestosMaquinas.Web.Models.ConfirmacionPagoViewModel
+@{
+    ViewData["Title"] = "Resultado del pago";
+}
+
+<div class="card mt-4">
+    <div class="card-body">
+        @if (Model.IsApproved)
+        {
+            <h2 class="text-success">✅ Pago aprobado</h2>
+            <p>Tu pago fue procesado correctamente por Mercado Pago.</p>
+        }
+        else
+        {
+            <h2 class="text-warning">⚠️ Pago no aprobado aún</h2>
+            <p>Estado reportado por Mercado Pago: <strong>@Model.EstadoPedido</strong>.</p>
+        }
+
+        <p class="mb-1">Payment ID: <strong>@(Model.PaymentId ?? "N/A")</strong></p>
+        <p class="mb-3">Preference ID: <strong>@(Model.PreferenceId ?? "N/A")</strong></p>
+
+        <a class="btn btn-primary" asp-controller="Catalogo" asp-action="Index">Seguir comprando</a>
+        <a class="btn btn-outline-secondary" asp-controller="Carrito" asp-action="Index">Volver al carrito</a>
+    </div>
+</div>

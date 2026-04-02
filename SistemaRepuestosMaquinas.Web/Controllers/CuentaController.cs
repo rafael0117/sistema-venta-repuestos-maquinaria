@@ -73,6 +73,8 @@ public class CuentaController(ApiClient apiClient) : Controller
 
         HttpContext.Session.SetString("jwt", auth.Token);
         HttpContext.Session.SetString("rol", auth.Rol ?? string.Empty);
+        if (auth.IdCliente.HasValue)
+            HttpContext.Session.SetString("idCliente", auth.IdCliente.Value.ToString());
 
         TempData["Message"] = $"Bienvenido, sesión iniciada ({auth.Rol}).";
         TempData["IsError"] = "0";
@@ -130,6 +132,7 @@ public class CuentaController(ApiClient apiClient) : Controller
     {
         HttpContext.Session.Remove("jwt");
         HttpContext.Session.Remove("rol");
+        HttpContext.Session.Remove("idCliente");
         TempData["Message"] = "Sesión cerrada correctamente.";
         TempData["IsError"] = "0";
         return RedirectToAction(nameof(Index));
@@ -148,6 +151,6 @@ public class CuentaController(ApiClient apiClient) : Controller
         }
     }
 
-    private sealed record AuthResponseDto(string Token, DateTime Expiration, string Rol);
+    private sealed record AuthResponseDto(string Token, DateTime Expiration, string Rol, int? IdCliente);
     private sealed record ErrorDto(string? Message);
 }

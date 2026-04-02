@@ -1,0 +1,16 @@
+@model SistemaRepuestosMaquinas.Web.Models.ConfirmacionPagoViewModel
+@{
+    ViewData["Title"] = "Pago realizado";
+}
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h2 class="text-success">✅ Pago realizado correctamente</h2>
+        <p class="mb-1">Pedido N°: <strong>@Model.IdPedido</strong></p>
+        <p class="mb-1">Estado: <strong>@Model.EstadoPedido</strong></p>
+        <p class="mb-3">Total pagado: <strong>S/ @Model.Total</strong></p>
+
+        <a class="btn btn-primary" asp-controller="Catalogo" asp-action="Index">Seguir comprando</a>
+        <a class="btn btn-outline-secondary" asp-controller="Carrito" asp-action="Index">Volver al carrito</a>
+    </div>
+</div>

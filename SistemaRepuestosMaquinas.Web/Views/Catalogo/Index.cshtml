@@ -5,6 +5,11 @@
 
 <h1 class="mb-3">Catálogo de repuestos</h1>
 
+@if (!string.IsNullOrWhiteSpace(TempData["Message"] as string))
+{
+    <div class="alert @(((TempData["IsError"] as string) == "1") ? "alert-danger" : "alert-success")">@TempData["Message"]</div>
+}
+
 <form method="get" class="row g-2 mb-3">
     <div class="col-md-6">
         <input name="Texto" value="@Model.Texto" class="form-control" placeholder="Buscar por nombre o descripción" />
@@ -27,7 +32,7 @@
 {
     <div class="col-md-4">
         <div class="card h-100">
-            <div class="card-body">
+            <div class="card-body d-flex flex-column">
                 <h5 class="card-title">@item.Nombre</h5>
                 <p class="card-text small mb-1"><strong>Código:</strong> @item.Codigo</p>
                 <p class="card-text small mb-1"><strong>Marca:</strong> @item.Marca</p>
@@ -35,6 +40,17 @@
                 <p class="card-text">@item.Descripcion</p>
                 <p class="fw-bold text-success mb-1">S/ @item.PrecioVenta</p>
                 <p class="small text-muted">Stock: @item.Stock</p>
+
+                <div class="mt-auto d-flex gap-2">
+                    <a class="btn btn-outline-primary btn-sm" asp-controller="Catalogo" asp-action="Detalle" asp-route-idProducto="@item.IdProducto">Ver detalle</a>
+                    <form asp-controller="Carrito" asp-action="AgregarRapido" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="idProducto" value="@item.IdProducto" />
+                        <input type="hidden" name="cantidad" value="1" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                        <button class="btn btn-success btn-sm" type="submit" @(item.Stock <= 0 ? "disabled" : null)>Agregar al carrito</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

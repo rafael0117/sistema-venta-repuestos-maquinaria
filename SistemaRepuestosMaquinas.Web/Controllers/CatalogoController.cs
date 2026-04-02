@@ -37,6 +37,33 @@ public class CatalogoController(ApiClient apiClient) : Controller
         return View(vm);
     }
 
+    [HttpGet("catalogo/detalle/{idProducto:int}")]
+    public async Task<IActionResult> Detalle(int idProducto, CancellationToken cancellationToken)
+    {
+        var producto = await apiClient.GetAsync<ProductoDto>($"api/producto/{idProducto}", cancellationToken);
+        if (producto is null)
+        {
+            TempData["Message"] = "No se encontró el producto.";
+            TempData["IsError"] = "1";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var vm = new ProductoDetalleViewModel
+        {
+            IdProducto = producto.IdProducto,
+            Codigo = producto.Codigo ?? string.Empty,
+            Nombre = producto.Nombre ?? string.Empty,
+            Descripcion = producto.Descripcion,
+            PrecioVenta = producto.PrecioVenta,
+            Stock = producto.Stock,
+            Categoria = producto.Categoria,
+            Marca = producto.Marca,
+            ImagenUrl = producto.ImagenUrl
+        };
+
+        return View(vm);
+    }
+
     private sealed class CatalogoResponseDto
     {
         public int Total { get; set; }

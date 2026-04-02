@@ -3,8 +3,6 @@ namespace SistemaRepuestosMaquinas.Web.Models;
 public class CarritoPageViewModel
 {
     public int? IdCliente { get; set; }
-    public int? IdProducto { get; set; }
-    public int Cantidad { get; set; } = 1;
     public string? DireccionEntrega { get; set; }
     public string? MetodoPago { get; set; } = "MERCADO_PAGO";
     public string? MercadoPagoToken { get; set; }
@@ -28,4 +26,11 @@ public class CarritoItemViewModel
     public int Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
     public decimal SubTotal { get; set; }
+}
+
+public class ConfirmacionPagoViewModel
+{
+    public int IdPedido { get; set; }
+    public decimal Total { get; set; }
+    public string EstadoPedido { get; set; } = "Procesado";
 }

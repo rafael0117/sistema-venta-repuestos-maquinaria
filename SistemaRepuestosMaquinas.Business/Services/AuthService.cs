@@ -61,7 +61,7 @@ public class AuthService(
         context.Clientes.Add(cliente);
         await context.SaveChangesAsync(cancellationToken);
 
-        return BuildToken(usuario, rolCliente.Nombre);
+        return BuildToken(usuario, rolCliente.Nombre, cliente.IdCliente);
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -78,10 +78,15 @@ public class AuthService(
             throw new UnauthorizedAccessException("Credenciales inválidas.");
         }
 
-        return BuildToken(usuario, usuario.Rol.Nombre);
+        var idCliente = await context.Clientes
+            .Where(x => x.IdUsuario == usuario.IdUsuario)
+            .Select(x => (int?)x.IdCliente)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return BuildToken(usuario, usuario.Rol.Nombre, idCliente);
     }
 
-    private AuthResponse BuildToken(Usuario usuario, string role)
+    private AuthResponse BuildToken(Usuario usuario, string role, int? idCliente = null)
     {
         var options = jwtOptions.Value;
         var expiration = DateTime.UtcNow.AddMinutes(options.ExpirationMinutes);
@@ -104,7 +109,7 @@ public class AuthService(
             signingCredentials: creds);
 
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-        return new AuthResponse(jwt, expiration, role);
+        return new AuthResponse(jwt, expiration, role, idCliente);
     }
 
     private static string ComputeHash(string raw)

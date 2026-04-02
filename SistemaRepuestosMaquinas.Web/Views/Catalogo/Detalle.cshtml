@@ -1,0 +1,32 @@
+@model SistemaRepuestosMaquinas.Web.Models.ProductoDetalleViewModel
+@{
+    ViewData["Title"] = "Detalle de producto";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <h2>@Model.Nombre</h2>
+        <p class="text-muted mb-1">Código: @Model.Codigo</p>
+        <p class="text-muted mb-1">Marca: @Model.Marca</p>
+        <p class="text-muted mb-3">Categoría: @Model.Categoria</p>
+        <p>@Model.Descripcion</p>
+        <h4 class="text-success">S/ @Model.PrecioVenta</h4>
+        <p>Stock disponible: <strong>@Model.Stock</strong></p>
+
+        <form asp-controller="Carrito" asp-action="AgregarRapido" method="post" class="row g-2 mt-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="idProducto" value="@Model.IdProducto" />
+            <input type="hidden" name="returnUrl" value="/Catalogo/Detalle/@Model.IdProducto" />
+            <div class="col-md-3">
+                <label class="form-label">Cantidad</label>
+                <input name="cantidad" type="number" class="form-control" min="1" max="@Math.Max(Model.Stock,1)" value="1" />
+            </div>
+            <div class="col-md-4 align-self-end">
+                <button class="btn btn-success" type="submit" @(Model.Stock <= 0 ? "disabled" : null)>Agregar al carrito</button>
+            </div>
+            <div class="col-md-4 align-self-end">
+                <a class="btn btn-outline-secondary" asp-controller="Catalogo" asp-action="Index">Volver al catálogo</a>
+            </div>
+        </form>
+    </div>
+</div>

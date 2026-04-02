@@ -1,0 +1,29 @@
+@model SistemaRepuestosMaquinas.Web.Models.AdminDashboardViewModel
+@{ ViewData["Title"] = "Dashboard Admin"; }
+
+<h1 class="mb-3">Dashboard Administrativo</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Productos</h5><p class="fw-bold">@Model.TotalProductos</p></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Clientes</h5><p class="fw-bold">@Model.TotalClientes</p></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Pedidos</h5><p class="fw-bold">@Model.TotalPedidos</p></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Utilidad Mes</h5><p class="fw-bold">S/ @Model.UtilidadBrutaMes</p></div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header">Módulos de Gestión</div>
+    <div class="card-body row g-2">
+        <a class="btn btn-primary" asp-controller="AdminProducto" asp-action="Index">Productos</a>
+        <a class="btn btn-primary" asp-controller="AdminCategoria" asp-action="Index">Categorías</a>
+        <a class="btn btn-primary" asp-controller="AdminMarca" asp-action="Index">Marcas</a>
+        <a class="btn btn-primary" asp-controller="AdminProveedor" asp-action="Index">Proveedores</a>
+        <a class="btn btn-primary" asp-controller="AdminCliente" asp-action="Index">Clientes</a>
+        <a class="btn btn-primary" asp-controller="AdminPedido" asp-action="Index">Pedidos</a>
+        <a class="btn btn-primary" asp-controller="AdminCompra" asp-action="Index">Compras</a>
+        <a class="btn btn-primary" asp-controller="AdminVenta" asp-action="Index">Ventas</a>
+    </div>
+</div>

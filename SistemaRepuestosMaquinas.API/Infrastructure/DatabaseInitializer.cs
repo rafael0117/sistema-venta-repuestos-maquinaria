@@ -3,7 +3,6 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SistemaRepuestosMaquinas.Common.Constants;
 using SistemaRepuestosMaquinas.Data.Context;
-using SistemaRepuestosMaquinas.Entity;
 
 namespace SistemaRepuestosMaquinas.API.Infrastructure;
 
@@ -17,7 +16,7 @@ public static class DatabaseInitializer
         await using var scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var hasMigrations = (await context.Database.GetMigrationsAsync(cancellationToken)).Any();
+        var hasMigrations = (await context.Database.GetAppliedMigrationsAsync(cancellationToken)).Any();
         if (hasMigrations)
         {
             await context.Database.MigrateAsync(cancellationToken);

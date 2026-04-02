@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SistemaRepuestosMaquinas.Business.DTOs;
+using Microsoft.Extensions.Options;
+using SistemaRepuestosMaquinas.API.Configuration;
 using SistemaRepuestosMaquinas.API.Services;
+using SistemaRepuestosMaquinas.Business.DTOs;
 using SistemaRepuestosMaquinas.Data.Context;
 using SistemaRepuestosMaquinas.Entity;
 
@@ -11,7 +13,10 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CarritoController(ApplicationDbContext context, IMercadoPagoService mercadoPagoService) : ControllerBase
+public class CarritoController(
+    ApplicationDbContext context,
+    IMercadoPagoService mercadoPagoService,
+    IOptions<MercadoPagoOptions> mercadoPagoOptions) : ControllerBase
 {
     [HttpGet("cliente/{idCliente:int}")]
     public async Task<IActionResult> Get(int idCliente, CancellationToken cancellationToken)
@@ -22,9 +27,7 @@ public class CarritoController(ApplicationDbContext context, IMercadoPagoService
             .FirstOrDefaultAsync(x => x.IdCliente == idCliente && x.Estado == "Abierto", cancellationToken);
 
         if (carrito is null)
-        {
             return Ok(new { idCliente, detalles = Array.Empty<object>(), total = 0m });
-        }
 
         var detalles = carrito.Detalles.Select(x => new
         {
@@ -86,13 +89,9 @@ public class CarritoController(ApplicationDbContext context, IMercadoPagoService
         if (detalle is null) return NotFound();
 
         if (request.Cantidad <= 0)
-        {
             context.CarritoDetalles.Remove(detalle);
-        }
         else
-        {
             detalle.Cantidad = request.Cantidad;
-        }
 
         await context.SaveChangesAsync(cancellationToken);
         return NoContent();
@@ -114,6 +113,7 @@ public class CarritoController(ApplicationDbContext context, IMercadoPagoService
     {
         var carrito = await context.Carritos
             .Include(x => x.Detalles)
+            .ThenInclude(x => x.Producto)
             .FirstOrDefaultAsync(x => x.IdCliente == idCliente && x.Estado == "Abierto", cancellationToken);
 
         if (carrito is null || carrito.Detalles.Count == 0)
@@ -128,55 +128,37 @@ public class CarritoController(ApplicationDbContext context, IMercadoPagoService
                 return BadRequest(new { message = $"Stock insuficiente para producto {item.IdProducto}." });
         }
 
-        var totalPedido = carrito.Detalles.Sum(x => x.Cantidad * x.PrecioUnitario);
-
-        if (request.MetodoPago.Equals("MERCADO_PAGO", StringComparison.OrdinalIgnoreCase))
+        if (!request.MetodoPago.Equals("MERCADO_PAGO", StringComparison.OrdinalIgnoreCase) &&
+            !request.MetodoPago.Equals("CHECKOUT_PRO", StringComparison.OrdinalIgnoreCase))
         {
-            if (string.IsNullOrWhiteSpace(request.MercadoPagoToken) || string.IsNullOrWhiteSpace(request.PaymentMethodId))
-                return BadRequest(new { message = "Faltan datos de Mercado Pago para procesar el pago." });
-
-            var mercadoPagoResult = await mercadoPagoService.CreatePaymentAsync(
-                new MercadoPagoChargeRequest(
-                    Total: totalPedido,
-                    Token: request.MercadoPagoToken,
-                    PaymentMethodId: request.PaymentMethodId,
-                    Installments: request.Installments ?? 1,
-                    Email: request.EmailPago ?? "cliente@demo.com",
-                    IdCliente: idCliente,
-                    IssuerId: request.IssuerId,
-                    IdentificationType: request.IdentificationType,
-                    IdentificationNumber: request.IdentificationNumber),
-                cancellationToken);
-
-            if (!mercadoPagoResult.IsSuccess)
-                return BadRequest(new { message = mercadoPagoResult.Message, mercadoPagoResult.Status, mercadoPagoResult.StatusDetail });
+            return BadRequest(new { message = "Método de pago no soportado para checkout en línea." });
         }
 
-        var pedido = new Pedido
+        var email = string.IsNullOrWhiteSpace(request.EmailPago) ? "cliente@demo.com" : request.EmailPago.Trim();
+        var baseWeb = mercadoPagoOptions.Value.WebAppBaseUrl.TrimEnd('/');
+
+        var preference = await mercadoPagoService.CreateCheckoutProPreferenceAsync(
+            new MercadoPagoPreferenceRequest(
+                IdCliente: idCliente,
+                Email: email,
+                Items: carrito.Detalles.Select(x => new MercadoPagoPreferenceItem(
+                    Title: x.Producto?.Nombre ?? $"Producto {x.IdProducto}",
+                    Quantity: x.Cantidad,
+                    UnitPrice: x.PrecioUnitario)).ToList(),
+                SuccessUrl: $"{baseWeb}/Carrito/ConfirmacionCheckoutPro",
+                FailureUrl: $"{baseWeb}/Carrito/ConfirmacionCheckoutPro",
+                PendingUrl: $"{baseWeb}/Carrito/ConfirmacionCheckoutPro"),
+            cancellationToken);
+
+        if (!preference.IsSuccess || string.IsNullOrWhiteSpace(preference.RedirectUrl))
+            return BadRequest(new { message = preference.Message });
+
+        return Ok(new
         {
-            IdCliente = idCliente,
-            DireccionEntrega = request.DireccionEntrega,
-            MetodoPago = request.MetodoPago,
-            EstadoPedido = request.MetodoPago.Equals("MERCADO_PAGO", StringComparison.OrdinalIgnoreCase) ? "Pagado" : "Pendiente",
-            Total = totalPedido,
-            Detalles = carrito.Detalles.Select(x => new PedidoDetalle
-            {
-                IdProducto = x.IdProducto,
-                Cantidad = x.Cantidad,
-                PrecioUnitario = x.PrecioUnitario
-            }).ToList()
-        };
-
-        foreach (var item in carrito.Detalles)
-        {
-            productos[item.IdProducto].Stock -= item.Cantidad;
-        }
-
-        carrito.Estado = "Cerrado";
-        context.Pedidos.Add(pedido);
-        await context.SaveChangesAsync(cancellationToken);
-
-        return Ok(new { pedido.IdPedido, pedido.Total, pedido.EstadoPedido });
+            redirectUrl = preference.RedirectUrl,
+            preferenceId = preference.PreferenceId,
+            message = preference.Message
+        });
     }
 
     public record AddCarritoItemRequest(int IdProducto, int Cantidad);

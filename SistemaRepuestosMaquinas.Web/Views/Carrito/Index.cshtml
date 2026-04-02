@@ -65,52 +65,25 @@ else
 </table>
 
 <div class="card mt-3">
-    <div class="card-header">Checkout</div>
+    <div class="card-header">Checkout Pro (Mercado Pago)</div>
     <div class="card-body">
         <p class="fw-bold">Total: S/ @Model.Total</p>
+        <p class="text-muted small">Serás redirigido a Mercado Pago para completar el pago de forma segura.</p>
+
         <form asp-action="Checkout" method="post" class="row g-2">
             @Html.AntiForgeryToken()
-            <div class="col-md-5">
-                <label asp-for="DireccionEntrega" class="form-label"></label>
+            <div class="col-md-6">
+                <label asp-for="DireccionEntrega" class="form-label">Dirección de entrega</label>
                 <input asp-for="DireccionEntrega" class="form-control" required />
             </div>
-            <div class="col-md-3">
-                <label asp-for="MetodoPago" class="form-label">Método de pago</label>
-                <input asp-for="MetodoPago" class="form-control" placeholder="MERCADO_PAGO o CONTRAENTREGA" required />
-            </div>
             <div class="col-md-4">
-                <label asp-for="EmailPago" class="form-label">Email pago</label>
-                <input asp-for="EmailPago" class="form-control" placeholder="cliente@correo.com" />
-            </div>
-            <div class="col-md-4">
-                <label asp-for="MercadoPagoToken" class="form-label">Mercado Pago token</label>
-                <input asp-for="MercadoPagoToken" class="form-control" placeholder="TOKEN_GENERADO_EN_FRONTEND" />
-            </div>
-            <div class="col-md-3">
-                <label asp-for="PaymentMethodId" class="form-label">PaymentMethodId</label>
-                <input asp-for="PaymentMethodId" class="form-control" placeholder="visa, master, amex..." />
-            </div>
-            <div class="col-md-2">
-                <label asp-for="Installments" class="form-label">Cuotas</label>
-                <input asp-for="Installments" class="form-control" type="number" min="1" />
-            </div>
-            <div class="col-md-3">
-                <label asp-for="IssuerId" class="form-label">IssuerId</label>
-                <input asp-for="IssuerId" class="form-control" placeholder="Opcional" />
-            </div>
-            <div class="col-md-2">
-                <label asp-for="IdentificationType" class="form-label">Doc. tipo</label>
-                <input asp-for="IdentificationType" class="form-control" placeholder="DNI" />
-            </div>
-            <div class="col-md-3">
-                <label asp-for="IdentificationNumber" class="form-label">Doc. número</label>
-                <input asp-for="IdentificationNumber" class="form-control" placeholder="12345678" />
+                <label asp-for="EmailPago" class="form-label">Email de pago</label>
+                <input asp-for="EmailPago" class="form-control" placeholder="comprador@test.com" required />
             </div>
             <div class="col-md-3 align-self-end">
-                <button class="btn btn-success" type="submit">Confirmar compra</button>
+                <button class="btn btn-success" type="submit">Pagar con Checkout Pro</button>
             </div>
         </form>
     </div>
 </div>
-
 }

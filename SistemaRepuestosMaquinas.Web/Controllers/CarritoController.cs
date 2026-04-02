@@ -87,17 +87,8 @@ public class CarritoController(ApiClient apiClient) : Controller
     public async Task<IActionResult> Checkout(CarritoPageViewModel model, CancellationToken cancellationToken)
     {
         var idCliente = TryGetSavedClienteId();
-        if (!idCliente.HasValue || string.IsNullOrWhiteSpace(model.DireccionEntrega) || string.IsNullOrWhiteSpace(model.MetodoPago))
-            return RedirectWithMessage("Completa dirección y método de pago, e inicia sesión.", true, idCliente);
-
-        if (model.MetodoPago.Equals("MERCADO_PAGO", StringComparison.OrdinalIgnoreCase) &&
-            (string.IsNullOrWhiteSpace(model.MercadoPagoToken) ||
-             string.IsNullOrWhiteSpace(model.PaymentMethodId) ||
-             !model.Installments.HasValue || model.Installments.Value <= 0 ||
-             string.IsNullOrWhiteSpace(model.EmailPago)))
-        {
-            return RedirectWithMessage("Para Mercado Pago debes ingresar EmailPago, MercadoPagoToken, PaymentMethodId e Installments válidos.", true, idCliente);
-        }
+        if (!idCliente.HasValue || string.IsNullOrWhiteSpace(model.DireccionEntrega))
+            return RedirectWithMessage("Completa dirección de entrega e inicia sesión.", true, idCliente);
 
         var token = HttpContext.Session.GetString("jwt");
         apiClient.AttachJwt(token);
@@ -106,39 +97,36 @@ public class CarritoController(ApiClient apiClient) : Controller
         {
             IdCliente = idCliente.Value,
             model.DireccionEntrega,
-            model.MetodoPago,
-            model.MercadoPagoToken,
-            model.PaymentMethodId,
-            model.Installments,
-            model.IssuerId,
-            model.EmailPago,
-            model.IdentificationType,
-            model.IdentificationNumber
+            MetodoPago = "CHECKOUT_PRO",
+            model.EmailPago
         }, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            return RedirectWithMessage("No se pudo realizar checkout.", true, idCliente);
+            return RedirectWithMessage("No se pudo iniciar Checkout Pro.", true, idCliente);
 
-        var checkout = await response.Content.ReadFromJsonAsync<CheckoutResponseDto>(cancellationToken);
-        return RedirectToAction(nameof(Confirmacion), new
-        {
-            idPedido = checkout?.IdPedido ?? 0,
-            total = checkout?.Total ?? 0,
-            estado = checkout?.EstadoPedido ?? "Procesado"
-        });
+        var checkout = await response.Content.ReadFromJsonAsync<CheckoutProResponseDto>(cancellationToken);
+        if (string.IsNullOrWhiteSpace(checkout?.RedirectUrl))
+            return RedirectWithMessage("No se recibió URL de pago de Mercado Pago.", true, idCliente);
+
+        return Redirect(checkout.RedirectUrl);
     }
 
     [HttpGet]
-    public IActionResult Confirmacion(int idPedido, decimal total, string estado)
+    public IActionResult ConfirmacionCheckoutPro(string? status, string? payment_id, string? preference_id, string? collection_status)
     {
+        var estado = !string.IsNullOrWhiteSpace(status)
+            ? status
+            : (!string.IsNullOrWhiteSpace(collection_status) ? collection_status : "pending");
+
         var vm = new ConfirmacionPagoViewModel
         {
-            IdPedido = idPedido,
-            Total = total,
-            EstadoPedido = estado
+            EstadoPedido = estado,
+            PaymentId = payment_id,
+            PreferenceId = preference_id,
+            IsApproved = string.Equals(estado, "approved", StringComparison.OrdinalIgnoreCase)
         };
 
-        return View(vm);
+        return View("Confirmacion", vm);
     }
 
     private async Task LoadCarritoAsync(CarritoPageViewModel vm, int idCliente, CancellationToken cancellationToken)
@@ -199,10 +187,10 @@ public class CarritoController(ApiClient apiClient) : Controller
         public decimal SubTotal { get; set; }
     }
 
-    private sealed class CheckoutResponseDto
+    private sealed class CheckoutProResponseDto
     {
-        public int IdPedido { get; set; }
-        public decimal Total { get; set; }
-        public string? EstadoPedido { get; set; }
+        public string? RedirectUrl { get; set; }
+        public string? PreferenceId { get; set; }
+        public string? Message { get; set; }
     }
 }

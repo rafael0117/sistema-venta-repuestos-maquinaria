@@ -1,7 +1,6 @@
-using MercadoPago.Client.Common;
-using MercadoPago.Client.Payment;
-using MercadoPago.Config;
-using MercadoPago.Resource.Payment;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using SistemaRepuestosMaquinas.API.Configuration;
 
@@ -9,76 +8,78 @@ namespace SistemaRepuestosMaquinas.API.Services;
 
 public class MercadoPagoService(IOptions<MercadoPagoOptions> options) : IMercadoPagoService
 {
-    public async Task<MercadoPagoChargeResult> CreatePaymentAsync(MercadoPagoChargeRequest request, CancellationToken cancellationToken = default)
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    public async Task<MercadoPagoPreferenceResult> CreateCheckoutProPreferenceAsync(MercadoPagoPreferenceRequest request, CancellationToken cancellationToken = default)
     {
         var config = options.Value;
         if (string.IsNullOrWhiteSpace(config.AccessToken))
-        {
-            return new MercadoPagoChargeResult(false, "Mercado Pago no está configurado (AccessToken).", null, null, null);
-        }
+            return new MercadoPagoPreferenceResult(false, "Mercado Pago no está configurado (AccessToken).", null, null);
 
-        var amount = Math.Round(request.Total, 2, MidpointRounding.AwayFromZero);
-        if (amount <= 0)
-        {
-            return new MercadoPagoChargeResult(false, "El monto del pago es inválido.", null, null, null);
-        }
+        if (request.Items.Count == 0)
+            return new MercadoPagoPreferenceResult(false, "No hay ítems para generar la preferencia de pago.", null, null);
 
-        MercadoPagoConfig.AccessToken = config.AccessToken;
-
-        var paymentRequest = new PaymentCreateRequest
+        var payload = new
         {
-            TransactionAmount = amount,
-            Token = request.Token,
-            Description = $"Pedido cliente #{request.IdCliente}",
-            Installments = request.Installments,
-            PaymentMethodId = request.PaymentMethodId,
-            IssuerId = request.IssuerId,
-            Payer = new PaymentPayerRequest
+            items = request.Items.Select(x => new
             {
-                Email = request.Email,
-                Identification = string.IsNullOrWhiteSpace(request.IdentificationType) || string.IsNullOrWhiteSpace(request.IdentificationNumber)
-                    ? null
-                    : new IdentificationRequest
-                    {
-                        Type = request.IdentificationType,
-                        Number = request.IdentificationNumber
-                    }
+                title = x.Title,
+                quantity = x.Quantity,
+                currency_id = "PEN",
+                unit_price = Math.Round(x.UnitPrice, 2, MidpointRounding.AwayFromZero)
+            }),
+            payer = new { email = request.Email },
+            back_urls = new
+            {
+                success = request.SuccessUrl,
+                failure = request.FailureUrl,
+                pending = request.PendingUrl
             },
-            Metadata = new Dictionary<string, object>
+            auto_return = "approved",
+            external_reference = $"cliente-{request.IdCliente}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}",
+            metadata = new
             {
-                ["cliente_id"] = request.IdCliente,
-                ["integracion"] = "mercado_pago"
+                cliente_id = request.IdCliente,
+                integracion = "checkout_pro"
             }
         };
 
-        if (request.Metadata is not null)
+        using var client = new HttpClient
         {
-            foreach (var entry in request.Metadata)
-            {
-                paymentRequest.Metadata[entry.Key] = entry.Value;
-            }
-        }
+            BaseAddress = new Uri("https://api.mercadopago.com/")
+        };
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", config.AccessToken);
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "checkout/preferences")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json")
+        };
+        httpRequest.Headers.Add("x-idempotency-key", Guid.NewGuid().ToString());
+
+        using var response = await client.SendAsync(httpRequest, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            return new MercadoPagoPreferenceResult(false, $"Mercado Pago rechazó la preferencia: {content}", null, null);
 
         try
         {
-            var client = new PaymentClient();
-            Payment payment = await client.CreateAsync(paymentRequest, cancellationToken: cancellationToken);
+            using var doc = JsonDocument.Parse(content);
+            var root = doc.RootElement;
+            var preferenceId = root.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
+            var initPoint = root.TryGetProperty("init_point", out var initProp) ? initProp.GetString() : null;
+            var sandboxPoint = root.TryGetProperty("sandbox_init_point", out var sandProp) ? sandProp.GetString() : null;
 
-            var isApproved = string.Equals(payment.Status, "approved", StringComparison.OrdinalIgnoreCase);
-            var message = isApproved
-                ? "Pago aprobado con Mercado Pago."
-                : $"Mercado Pago devolvió el estado '{payment.Status}' ({payment.StatusDetail}).";
+            var redirect = string.IsNullOrWhiteSpace(sandboxPoint) ? initPoint : sandboxPoint;
+            if (string.IsNullOrWhiteSpace(redirect))
+                return new MercadoPagoPreferenceResult(false, "Mercado Pago no devolvió una URL de redirección.", preferenceId, null);
 
-            return new MercadoPagoChargeResult(
-                isApproved,
-                message,
-                payment.Id.ToString(),
-                payment.Status,
-                payment.StatusDetail);
+            return new MercadoPagoPreferenceResult(true, "Preferencia Checkout Pro creada correctamente.", preferenceId, redirect);
         }
-        catch (Exception ex)
+        catch (JsonException)
         {
-            return new MercadoPagoChargeResult(false, $"Error al procesar el pago con Mercado Pago: {ex.Message}", null, null, null);
+            return new MercadoPagoPreferenceResult(false, "Respuesta inválida al crear la preferencia de Mercado Pago.", null, null);
         }
     }
 }

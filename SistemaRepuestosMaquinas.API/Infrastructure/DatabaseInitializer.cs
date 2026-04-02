@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SistemaRepuestosMaquinas.Common.Constants;
 using SistemaRepuestosMaquinas.Data.Context;
+using SistemaRepuestosMaquinas.Entity;
 
 namespace SistemaRepuestosMaquinas.API.Infrastructure;
 

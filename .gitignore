@@ -1,0 +1,45 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+out/
+artifacts/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE folders
+.vs/
+.vscode/
+.idea/
+
+# .NET / NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.assets.json
+project.nuget.cache
+*.nuget.dgspec.json
+*.nuget.g.props
+*.nuget.g.targets
+
+# Logs and caches
+*.log
+*.cache
+*.tmp
+*.temp
+
+# Test output
+[Tt]est[Rr]esult*/
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,5 +1,7 @@
-@{
-    ViewData["Title"] = "AdminVenta";
-}
-<h1>AdminVenta</h1>
-<p>Vista base del módulo AdminVenta. Consumirá endpoints JWT de la API.</p>
+@model SistemaRepuestosMaquinas.Web.Models.AdminVentaPageViewModel
+@{ ViewData["Title"] = "Admin Ventas"; }
+<h1 class="mb-3">Admin · Ventas</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError?"alert-danger":"alert-success")">@Model.Message</div> }
+<table class="table table-striped"><thead><tr><th>Id</th><th>Cliente</th><th>Fecha</th><th>Total</th></tr></thead><tbody>
+@foreach (var x in Model.Items){<tr><td>@x.IdVenta</td><td>@x.IdCliente</td><td>@x.FechaVenta</td><td>S/ @x.Total</td></tr>}
+</tbody></table>

@@ -14,9 +14,6 @@ public class CarritoPageViewModel
     public string? EmailPago { get; set; }
     public string? IdentificationType { get; set; } = "DNI";
     public string? IdentificationNumber { get; set; }
-    public string? MetodoPago { get; set; } = "CULQI";
-    public string? CulqiToken { get; set; }
-    public string? EmailPago { get; set; }
     public decimal Total { get; set; }
     public string? Message { get; set; }
     public bool IsError { get; set; }
@@ -31,5 +28,4 @@ public class CarritoItemViewModel
     public int Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
     public decimal SubTotal { get; set; }
-}
 }

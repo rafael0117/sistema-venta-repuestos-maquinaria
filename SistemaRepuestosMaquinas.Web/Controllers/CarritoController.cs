@@ -8,9 +8,6 @@ namespace SistemaRepuestosMaquinas.Web.Controllers;
 public class CarritoController(ApiClient apiClient) : Controller
 {
     [HttpGet]
-public class CarritoController(ApiClient apiClient) : Controller
-{
- [HttpGet]
     public async Task<IActionResult> Index(int? idCliente, CancellationToken cancellationToken)
     {
         var vm = new CarritoPageViewModel
@@ -82,10 +79,6 @@ public class CarritoController(ApiClient apiClient) : Controller
              string.IsNullOrWhiteSpace(model.EmailPago)))
         {
             return RedirectWithMessage("Para Mercado Pago debes ingresar EmailPago, MercadoPagoToken, PaymentMethodId e Installments válidos.", true, model.IdCliente);
-        if (model.MetodoPago.Equals("CULQI", StringComparison.OrdinalIgnoreCase) &&
-            (string.IsNullOrWhiteSpace(model.CulqiToken) || string.IsNullOrWhiteSpace(model.EmailPago)))
-        {
-            return RedirectWithMessage("Para Culqi debes ingresar EmailPago y CulqiToken (source_id).", true, model.IdCliente);
         }
 
         var token = HttpContext.Session.GetString("jwt");
@@ -103,8 +96,6 @@ public class CarritoController(ApiClient apiClient) : Controller
             model.EmailPago,
             model.IdentificationType,
             model.IdentificationNumber
-            model.CulqiToken,
-            model.EmailPago
         }, cancellationToken);
 
         return response.IsSuccessStatusCode
@@ -167,5 +158,4 @@ public class CarritoController(ApiClient apiClient) : Controller
         public decimal PrecioUnitario { get; set; }
         public decimal SubTotal { get; set; }
     }
-}
 }

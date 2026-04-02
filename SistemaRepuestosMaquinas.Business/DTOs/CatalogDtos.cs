@@ -12,5 +12,3 @@ public record CheckoutRequest(
     string? EmailPago = null,
     string? IdentificationType = null,
     string? IdentificationNumber = null);
-    string? CulqiToken = null,
-    string? EmailPago = null);

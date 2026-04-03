@@ -20,6 +20,37 @@ public class CuentaController(ApiClient apiClient) : Controller
         return View(vm);
     }
 
+    [HttpGet]
+    public IActionResult Registro()
+    {
+        return View(new RegisterPageViewModel
+        {
+            Message = TempData["Message"] as string,
+            IsError = (TempData["IsError"] as string) == "1"
+        });
+    }
+
+    [HttpGet]
+    public IActionResult RecuperarContrasena()
+    {
+        return View(new ForgotPasswordPageViewModel
+        {
+            Message = TempData["Message"] as string,
+            IsError = (TempData["IsError"] as string) == "1"
+        });
+    }
+
+    [HttpGet]
+    public IActionResult RestablecerContrasena(string token)
+    {
+        return View(new ResetPasswordPageViewModel
+        {
+            ResetPassword = new ResetPasswordViewModel { Token = token ?? string.Empty },
+            Message = TempData["Message"] as string,
+            IsError = (TempData["IsError"] as string) == "1"
+        });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login([Bind(Prefix = "Login")] LoginViewModel login, CancellationToken cancellationToken)
@@ -85,12 +116,12 @@ public class CuentaController(ApiClient apiClient) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register([Bind(Prefix = "Register")] RegisterViewModel register, CancellationToken cancellationToken)
     {
-        if (!TryValidateModel(register, nameof(CuentaPageViewModel.Register)))
+        if (!TryValidateModel(register, nameof(RegisterPageViewModel.Register)))
         {
-            return View("Index", new CuentaPageViewModel
+            return View("Registro", new RegisterPageViewModel
             {
                 Register = register,
-                Message = "Completa todos los campos del registro.",
+                Message = "Completa todos los campos del registro con datos válidos.",
                 IsError = true
             });
         }
@@ -102,7 +133,7 @@ public class CuentaController(ApiClient apiClient) : Controller
         }
         catch (HttpRequestException)
         {
-            return View("Index", new CuentaPageViewModel
+            return View("Registro", new RegisterPageViewModel
             {
                 Register = register,
                 Message = "No hay conexión con la API (verifica que esté ejecutándose en la URL configurada).",
@@ -112,8 +143,8 @@ public class CuentaController(ApiClient apiClient) : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var message = await TryReadMessageAsync(response, "No se pudo registrar la cuenta. Verifica el correo.", cancellationToken);
-            return View("Index", new CuentaPageViewModel
+            var message = await TryReadMessageAsync(response, "No se pudo registrar la cuenta. Verifica tus datos.", cancellationToken);
+            return View("Registro", new RegisterPageViewModel
             {
                 Register = register,
                 Message = message,
@@ -122,6 +153,84 @@ public class CuentaController(ApiClient apiClient) : Controller
         }
 
         TempData["Message"] = "Registro exitoso. Ahora inicia sesión con tu correo y contraseña.";
+        TempData["IsError"] = "0";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SolicitarRecuperacion([Bind(Prefix = "ForgotPassword")] ForgotPasswordViewModel forgotPassword, CancellationToken cancellationToken)
+    {
+        if (!TryValidateModel(forgotPassword, nameof(ForgotPasswordPageViewModel.ForgotPassword)))
+        {
+            return View("RecuperarContrasena", new ForgotPasswordPageViewModel
+            {
+                ForgotPassword = forgotPassword,
+                Message = "Ingresa un correo válido para recuperar tu contraseña.",
+                IsError = true
+            });
+        }
+
+        try
+        {
+            await apiClient.PostAsync("api/auth/forgot-password", forgotPassword, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return View("RecuperarContrasena", new ForgotPasswordPageViewModel
+            {
+                ForgotPassword = forgotPassword,
+                Message = "No hay conexión con la API (verifica que esté ejecutándose en la URL configurada).",
+                IsError = true
+            });
+        }
+
+        TempData["Message"] = "Si el correo existe, te enviamos instrucciones para restablecer la contraseña.";
+        TempData["IsError"] = "0";
+        return RedirectToAction(nameof(RecuperarContrasena));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RestablecerContrasena([Bind(Prefix = "ResetPassword")] ResetPasswordViewModel resetPassword, CancellationToken cancellationToken)
+    {
+        if (!TryValidateModel(resetPassword, nameof(ResetPasswordPageViewModel.ResetPassword)))
+        {
+            return View(new ResetPasswordPageViewModel
+            {
+                ResetPassword = resetPassword,
+                Message = "Completa correctamente el formulario para actualizar la contraseña.",
+                IsError = true
+            });
+        }
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await apiClient.PostAsync("api/auth/reset-password", resetPassword, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return View(new ResetPasswordPageViewModel
+            {
+                ResetPassword = resetPassword,
+                Message = "No hay conexión con la API (verifica que esté ejecutándose en la URL configurada).",
+                IsError = true
+            });
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var message = await TryReadMessageAsync(response, "No se pudo actualizar la contraseña.", cancellationToken);
+            return View(new ResetPasswordPageViewModel
+            {
+                ResetPassword = resetPassword,
+                Message = message,
+                IsError = true
+            });
+        }
+
+        TempData["Message"] = "Contraseña actualizada. Ahora ya puedes iniciar sesión.";
         TempData["IsError"] = "0";
         return RedirectToAction(nameof(Index));
     }

@@ -18,8 +18,12 @@ public class AuthService(
     IOptions<JwtOptions> jwtOptions,
     ApplicationDbContext context) : IAuthService
 {
+    private const int MinPasswordLength = 8;
+
     public async Task<AuthResponse> RegisterClienteAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        ValidateRegisterRequest(request);
+
         var correo = request.Correo.Trim().ToLowerInvariant();
         var existe = await context.Usuarios.AnyAsync(x => x.Correo == correo, cancellationToken);
         if (existe)
@@ -27,15 +31,7 @@ public class AuthService(
             throw new InvalidOperationException("El correo ya está registrado.");
         }
 
-        var rolCliente = await context.Roles
-            .FirstOrDefaultAsync(x => x.Nombre == Roles.Cliente, cancellationToken);
-
-        if (rolCliente is null)
-        {
-            rolCliente = new Rol { Nombre = Roles.Cliente };
-            context.Roles.Add(rolCliente);
-            await context.SaveChangesAsync(cancellationToken);
-        }
+        var rolCliente = await GetOrCreateClienteRoleAsync(cancellationToken);
 
         var usuario = new Usuario
         {
@@ -52,10 +48,10 @@ public class AuthService(
         var cliente = new Cliente
         {
             IdUsuario = usuario.IdUsuario,
-            TipoDocumento = "DNI",
-            NumeroDocumento = string.Empty,
-            Telefono = string.Empty,
-            Direccion = string.Empty
+            TipoDocumento = request.TipoDocumento.Trim().ToUpperInvariant(),
+            NumeroDocumento = request.NumeroDocumento.Trim(),
+            Telefono = request.Telefono.Trim(),
+            Direccion = request.Direccion.Trim()
         };
 
         context.Clientes.Add(cliente);
@@ -84,6 +80,108 @@ public class AuthService(
             .FirstOrDefaultAsync(cancellationToken);
 
         return BuildToken(usuario, usuario.Rol.Nombre, idCliente);
+    }
+
+    public async Task<PasswordResetNotificationData?> RequestPasswordResetAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        var correo = request.Correo.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(correo))
+        {
+            return null;
+        }
+
+        var usuario = await context.Usuarios
+            .FirstOrDefaultAsync(x => x.Correo == correo, cancellationToken);
+
+        if (usuario is null)
+        {
+            return null;
+        }
+
+        var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        usuario.ResetPasswordTokenHash = ComputeHash(rawToken);
+        usuario.ResetPasswordExpiresAtUtc = DateTime.UtcNow.AddMinutes(30);
+        await context.SaveChangesAsync(cancellationToken);
+
+        return new PasswordResetNotificationData(
+            usuario.Correo,
+            $"{usuario.Nombres} {usuario.Apellidos}".Trim(),
+            Uri.EscapeDataString(rawToken));
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token))
+        {
+            throw new InvalidOperationException("El token de recuperación es obligatorio.");
+        }
+
+        ValidateNewPassword(request.NewPassword, request.ConfirmPassword);
+
+        var token = Uri.UnescapeDataString(request.Token.Trim());
+        var tokenHash = ComputeHash(token);
+
+        var usuario = await context.Usuarios.FirstOrDefaultAsync(
+            x => x.ResetPasswordTokenHash == tokenHash,
+            cancellationToken);
+
+        if (usuario is null || !usuario.ResetPasswordExpiresAtUtc.HasValue || usuario.ResetPasswordExpiresAtUtc.Value < DateTime.UtcNow)
+        {
+            throw new InvalidOperationException("El enlace de recuperación no es válido o ha expirado.");
+        }
+
+        usuario.PasswordHash = ComputeHash(request.NewPassword);
+        usuario.ResetPasswordTokenHash = null;
+        usuario.ResetPasswordExpiresAtUtc = null;
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<Rol> GetOrCreateClienteRoleAsync(CancellationToken cancellationToken)
+    {
+        var rolCliente = await context.Roles
+            .FirstOrDefaultAsync(x => x.Nombre == Roles.Cliente, cancellationToken);
+
+        if (rolCliente is not null)
+        {
+            return rolCliente;
+        }
+
+        rolCliente = new Rol { Nombre = Roles.Cliente };
+        context.Roles.Add(rolCliente);
+        await context.SaveChangesAsync(cancellationToken);
+        return rolCliente;
+    }
+
+    private static void ValidateRegisterRequest(RegisterRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Nombres) || request.Nombres.Trim().Length < 2)
+            throw new InvalidOperationException("Los nombres deben tener al menos 2 caracteres.");
+
+        if (string.IsNullOrWhiteSpace(request.Apellidos) || request.Apellidos.Trim().Length < 2)
+            throw new InvalidOperationException("Los apellidos deben tener al menos 2 caracteres.");
+
+        if (string.IsNullOrWhiteSpace(request.Telefono) || request.Telefono.Trim().Length < 9)
+            throw new InvalidOperationException("El teléfono debe tener al menos 9 dígitos.");
+
+        if (string.IsNullOrWhiteSpace(request.TipoDocumento) || string.IsNullOrWhiteSpace(request.NumeroDocumento))
+            throw new InvalidOperationException("Debes indicar tipo y número de documento.");
+
+        if (string.IsNullOrWhiteSpace(request.Direccion) || request.Direccion.Trim().Length < 6)
+            throw new InvalidOperationException("La dirección debe tener al menos 6 caracteres.");
+
+        ValidateNewPassword(request.Password, request.ConfirmPassword);
+    }
+
+    private static void ValidateNewPassword(string password, string confirmPassword)
+    {
+        if (string.IsNullOrWhiteSpace(password) || password.Length < MinPasswordLength)
+            throw new InvalidOperationException("La contraseña debe tener mínimo 8 caracteres.");
+
+        if (!password.Any(char.IsUpper) || !password.Any(char.IsLower) || !password.Any(char.IsDigit) || !password.Any(ch => !char.IsLetterOrDigit(ch)))
+            throw new InvalidOperationException("La contraseña debe incluir mayúscula, minúscula, número y símbolo.");
+
+        if (!string.Equals(password, confirmPassword, StringComparison.Ordinal))
+            throw new InvalidOperationException("La confirmación de contraseña no coincide.");
     }
 
     private AuthResponse BuildToken(Usuario usuario, string role, int? idCliente = null)

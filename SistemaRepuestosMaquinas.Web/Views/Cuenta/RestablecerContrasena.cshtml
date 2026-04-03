@@ -1,0 +1,46 @@
+@model SistemaRepuestosMaquinas.Web.Models.ResetPasswordPageViewModel
+@{
+    ViewData["Title"] = "Restablecer contraseña";
+}
+
+<section class="auth-hero mb-3">
+    <div>
+        <p class="eyebrow">ACTUALIZAR CLAVE</p>
+        <h1>Restablecer contraseña</h1>
+        <p class="text-muted">Crea una nueva contraseña segura para continuar.</p>
+    </div>
+    <div class="hero-pill">Token + seguridad</div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+}
+
+<div class="row g-4 auth-grid-single">
+    <div class="col-md-6 auth-center-col">
+        <div class="card auth-card auth-card-register">
+            <div class="card-header">Nueva contraseña</div>
+            <div class="card-body">
+                <form asp-action="RestablecerContrasena" method="post" class="auth-form">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="ResetPassword.Token" type="hidden" />
+                    <div class="mb-2">
+                        <label asp-for="ResetPassword.NewPassword" class="form-label">Nueva contraseña</label>
+                        <input asp-for="ResetPassword.NewPassword" class="form-control" placeholder="Mínimo 8 caracteres" />
+                        <span asp-validation-for="ResetPassword.NewPassword" class="field-validation-error"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="ResetPassword.ConfirmPassword" class="form-label">Confirmar nueva contraseña</label>
+                        <input asp-for="ResetPassword.ConfirmPassword" class="form-control" placeholder="Repite la contraseña" />
+                        <span asp-validation-for="ResetPassword.ConfirmPassword" class="field-validation-error"></span>
+                    </div>
+                    <button class="btn btn-success auth-btn" type="submit">Guardar contraseña</button>
+                </form>
+                <div class="auth-links mt-3">
+                    <a asp-action="Index">Ir a iniciar sesión</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

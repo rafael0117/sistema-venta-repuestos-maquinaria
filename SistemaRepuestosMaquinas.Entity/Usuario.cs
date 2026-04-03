@@ -8,6 +8,8 @@ public class Usuario : BaseEntity
     public string Apellidos { get; set; } = string.Empty;
     public string Correo { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
+    public string? ResetPasswordTokenHash { get; set; }
+    public DateTime? ResetPasswordExpiresAtUtc { get; set; }
 
     public Rol? Rol { get; set; }
     public Cliente? Cliente { get; set; }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using SistemaRepuestosMaquinas.API.Configuration;
 using SistemaRepuestosMaquinas.API.Services;
 using SistemaRepuestosMaquinas.Business.DTOs;
+using SistemaRepuestosMaquinas.Business.Interfaces;
 using SistemaRepuestosMaquinas.Data.Context;
 using SistemaRepuestosMaquinas.Entity;
 
@@ -16,7 +17,8 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 public class CarritoController(
     ApplicationDbContext context,
     IMercadoPagoService mercadoPagoService,
-    IOptions<MercadoPagoOptions> mercadoPagoOptions) : ControllerBase
+    IOptions<MercadoPagoOptions> mercadoPagoOptions,
+    ICheckoutService checkoutService) : ControllerBase
 {
     [HttpGet("cliente/{idCliente:int}")]
     public async Task<IActionResult> Get(int idCliente, CancellationToken cancellationToken)
@@ -158,6 +160,28 @@ public class CarritoController(
             redirectUrl = preference.RedirectUrl,
             preferenceId = preference.PreferenceId,
             message = preference.Message
+        });
+    }
+
+    [HttpPost("cliente/{idCliente:int}/confirmar-checkout-pro")]
+    public async Task<IActionResult> ConfirmarCheckoutPro(int idCliente, [FromBody] ConfirmCheckoutProRequest request, CancellationToken cancellationToken)
+    {
+        var result = await checkoutService.ConfirmCheckoutProAsync(
+            idCliente,
+            request.Status,
+            request.PaymentId,
+            request.PreferenceId,
+            request.DireccionEntrega,
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { message = result.Message });
+
+        return Ok(new
+        {
+            result.Message,
+            result.IdPedido,
+            result.TotalPedido
         });
     }
 

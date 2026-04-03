@@ -43,7 +43,7 @@ public class AuthService(
             Nombres = request.Nombres.Trim(),
             Apellidos = request.Apellidos.Trim(),
             Correo = correo,
-            PasswordHash = ComputeHash(request.Password)
+            PasswordHash = PasswordHasher.Hash(request.Password)
         };
 
         context.Usuarios.Add(usuario);
@@ -67,15 +67,19 @@ public class AuthService(
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         var correo = request.Correo.Trim().ToLowerInvariant();
-        var hash = ComputeHash(request.Password);
-
         var usuario = await context.Usuarios
             .Include(x => x.Rol)
-            .FirstOrDefaultAsync(x => x.Correo == correo && x.PasswordHash == hash, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Correo == correo, cancellationToken);
 
-        if (usuario is null || usuario.Rol is null)
+        if (usuario is null || usuario.Rol is null || !VerifyPassword(request.Password, usuario, out var updatedHash))
         {
             throw new UnauthorizedAccessException("Credenciales inválidas.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(updatedHash))
+        {
+            usuario.PasswordHash = updatedHash;
+            await context.SaveChangesAsync(cancellationToken);
         }
 
         var idCliente = await context.Clientes
@@ -112,7 +116,26 @@ public class AuthService(
         return new AuthResponse(jwt, expiration, role, idCliente);
     }
 
-    private static string ComputeHash(string raw)
+    private static bool VerifyPassword(string rawPassword, Usuario usuario, out string? updatedHash)
+    {
+        updatedHash = null;
+        if (PasswordHasher.Verify(rawPassword, usuario.PasswordHash, out var requiresRehash))
+        {
+            if (requiresRehash)
+                updatedHash = PasswordHasher.Hash(rawPassword);
+
+            return true;
+        }
+
+        var legacyHash = ComputeLegacyHash(rawPassword);
+        if (!string.Equals(usuario.PasswordHash, legacyHash, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        updatedHash = PasswordHasher.Hash(rawPassword);
+        return true;
+    }
+
+    private static string ComputeLegacyHash(string raw)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(bytes);

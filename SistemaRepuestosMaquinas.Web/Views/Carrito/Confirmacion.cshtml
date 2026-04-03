@@ -18,6 +18,15 @@
 
         <p class="mb-1">Payment ID: <strong>@(Model.PaymentId ?? "N/A")</strong></p>
         <p class="mb-3">Preference ID: <strong>@(Model.PreferenceId ?? "N/A")</strong></p>
+        <p class="mb-1">Pedido generado: <strong>@(Model.IdPedido?.ToString() ?? "N/A")</strong></p>
+        <p class="mb-3">Total pedido: <strong>@Model.TotalPedido.ToString("C")</strong></p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Message))
+        {
+            <div class="alert @(Model.IsError ? "alert-warning" : "alert-success")">
+                @Model.Message
+            </div>
+        }
 
         <a class="btn btn-primary" asp-controller="Catalogo" asp-action="Index">Seguir comprando</a>
         <a class="btn btn-outline-secondary" asp-controller="Carrito" asp-action="Index">Volver al carrito</a>

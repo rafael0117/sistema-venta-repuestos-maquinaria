@@ -1,6 +1,5 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
+using SistemaRepuestosMaquinas.Business.Security;
 using SistemaRepuestosMaquinas.Common.Constants;
 using SistemaRepuestosMaquinas.Data.Context;
 using SistemaRepuestosMaquinas.Entity;
@@ -17,8 +16,8 @@ public static class DatabaseInitializer
         await using var scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var hasMigrations = (await context.Database.GetAppliedMigrationsAsync(cancellationToken)).Any();
-        if (hasMigrations)
+        var hasDefinedMigrations = (await context.Database.GetMigrationsAsync(cancellationToken)).Any();
+        if (hasDefinedMigrations)
         {
             await context.Database.MigrateAsync(cancellationToken);
         }
@@ -66,17 +65,11 @@ public static class DatabaseInitializer
             Nombres = "Administrador",
             Apellidos = "Sistema",
             Correo = AdminEmail,
-            PasswordHash = ComputeHash(AdminPassword),
+            PasswordHash = PasswordHasher.Hash(AdminPassword),
             Estado = true
         };
 
         context.Usuarios.Add(adminUser);
         await context.SaveChangesAsync(cancellationToken);
-    }
-
-    private static string ComputeHash(string raw)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
-        return Convert.ToHexString(bytes);
     }
 }

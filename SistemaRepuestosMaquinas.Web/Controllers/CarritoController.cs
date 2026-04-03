@@ -112,7 +112,12 @@ public class CarritoController(ApiClient apiClient) : Controller
     }
 
     [HttpGet]
-    public IActionResult ConfirmacionCheckoutPro(string? status, string? payment_id, string? preference_id, string? collection_status)
+    public async Task<IActionResult> ConfirmacionCheckoutPro(
+        string? status,
+        string? payment_id,
+        string? preference_id,
+        string? collection_status,
+        CancellationToken cancellationToken)
     {
         var estado = !string.IsNullOrWhiteSpace(status)
             ? status
@@ -125,6 +130,44 @@ public class CarritoController(ApiClient apiClient) : Controller
             PreferenceId = preference_id,
             IsApproved = string.Equals(estado, "approved", StringComparison.OrdinalIgnoreCase)
         };
+
+        if (!vm.IsApproved)
+        {
+            vm.Message = "Mercado Pago aún no reporta aprobación del pago.";
+            vm.IsError = true;
+            return View("Confirmacion", vm);
+        }
+
+        var idCliente = TryGetSavedClienteId();
+        if (!idCliente.HasValue)
+        {
+            vm.Message = "No se pudo validar tu sesión para confirmar el pedido.";
+            vm.IsError = true;
+            return View("Confirmacion", vm);
+        }
+
+        var token = HttpContext.Session.GetString("jwt");
+        apiClient.AttachJwt(token);
+        var response = await apiClient.PostAsync($"api/carrito/cliente/{idCliente.Value}/confirmar-checkout-pro", new
+        {
+            Status = estado,
+            PaymentId = payment_id,
+            PreferenceId = preference_id,
+            DireccionEntrega = "Dirección confirmada en checkout"
+        }, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            vm.Message = "El pago fue aprobado, pero no se pudo generar el pedido automáticamente.";
+            vm.IsError = true;
+            return View("Confirmacion", vm);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<ConfirmCheckoutDto>(cancellationToken);
+        vm.IdPedido = result?.IdPedido;
+        vm.TotalPedido = result?.TotalPedido ?? 0m;
+        vm.Message = result?.Message ?? "Pago confirmado y pedido generado.";
+        vm.IsError = false;
 
         return View("Confirmacion", vm);
     }
@@ -192,5 +235,12 @@ public class CarritoController(ApiClient apiClient) : Controller
         public string? RedirectUrl { get; set; }
         public string? PreferenceId { get; set; }
         public string? Message { get; set; }
+    }
+
+    private sealed class ConfirmCheckoutDto
+    {
+        public string? Message { get; set; }
+        public int? IdPedido { get; set; }
+        public decimal TotalPedido { get; set; }
     }
 }

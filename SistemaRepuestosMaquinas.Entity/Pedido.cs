@@ -9,6 +9,9 @@ public class Pedido
     public string EstadoPedido { get; set; } = "Pendiente";
     public string DireccionEntrega { get; set; } = string.Empty;
     public string MetodoPago { get; set; } = string.Empty;
+    public string EstadoPago { get; set; } = "pending";
+    public string? ExternalPaymentId { get; set; }
+    public string? ExternalPreferenceId { get; set; }
 
     public Cliente? Cliente { get; set; }
     public ICollection<PedidoDetalle> Detalles { get; set; } = new List<PedidoDetalle>();

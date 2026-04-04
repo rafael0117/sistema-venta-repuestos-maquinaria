@@ -8,7 +8,7 @@ public abstract class AdminBaseController(ApiClient apiClient) : Controller
 {
     protected ApiClient ApiClient => apiClient;
 
-    protected bool TryAuthorizeAdminOrVendedor(out IActionResult? unauthorizedResult)
+    protected bool TryAuthorizeAdmin(out IActionResult? unauthorizedResult)
     {
         var token = HttpContext.Session.GetString("jwt");
         var rol = HttpContext.Session.GetString("rol");
@@ -19,10 +19,9 @@ public abstract class AdminBaseController(ApiClient apiClient) : Controller
             return false;
         }
 
-        if (!string.Equals(rol, Roles.Administrador, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(rol, Roles.Vendedor, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(rol, Roles.Administrador, StringComparison.OrdinalIgnoreCase))
         {
-            unauthorizedResult = RedirectToAction("Index", "Cuenta", new { message = "No tienes permisos para el dashboard admin." });
+            unauthorizedResult = RedirectToAction("Index", "Cuenta", new { message = "No tienes permisos de administrador." });
             return false;
         }
 

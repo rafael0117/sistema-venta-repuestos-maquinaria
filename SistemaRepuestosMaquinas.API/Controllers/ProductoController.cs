@@ -19,7 +19,12 @@ public class ProductoController(ApplicationDbContext context) : ControllerBase
             .AsNoTracking()
             .Include(x => x.Categoria)
             .Include(x => x.Marca)
-            .Where(x => x.Estado);
+            .AsQueryable();
+
+        if (!filtro.IncludeInactive)
+        {
+            query = query.Where(x => x.Estado);
+        }
 
         if (!string.IsNullOrWhiteSpace(filtro.Texto))
         {
@@ -51,6 +56,9 @@ public class ProductoController(ApplicationDbContext context) : ControllerBase
                 x.Stock,
                 x.StockMinimo,
                 x.ImagenUrl,
+                x.IdCategoria,
+                x.IdMarca,
+                x.Estado,
                 Categoria = x.Categoria != null ? x.Categoria.Nombre : null,
                 Marca = x.Marca != null ? x.Marca.Nombre : null
             })

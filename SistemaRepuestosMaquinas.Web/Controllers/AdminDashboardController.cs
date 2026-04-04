@@ -9,7 +9,7 @@ public class AdminDashboardController(ApiClient apiClient) : AdminBaseController
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var vm = new AdminDashboardViewModel
         {

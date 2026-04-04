@@ -3,8 +3,7 @@
 @{
     var rol = HttpContextAccessor.HttpContext?.Session.GetString("rol");
     var isAuthenticated = !string.IsNullOrWhiteSpace(HttpContextAccessor.HttpContext?.Session.GetString("jwt"));
-    var showAdmin = string.Equals(rol, Roles.Administrador, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(rol, Roles.Vendedor, StringComparison.OrdinalIgnoreCase);
+    var showAdmin = string.Equals(rol, Roles.Administrador, StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -37,7 +36,7 @@
 
                 @if (showAdmin)
                 {
-                    <a asp-controller="AdminDashboard" asp-action="Index">Dashboard Admin</a>
+                    <a asp-controller="AdminDashboard" asp-action="Index">Panel Admin</a>
                 }
             </nav>
         </div>

@@ -153,3 +153,41 @@ public class AdminVentaItem
     public DateTime FechaVenta { get; set; }
     public decimal Total { get; set; }
 }
+
+
+public class AdminUsuarioPageViewModel
+{
+    public string? Message { get; set; }
+    public bool IsError { get; set; }
+    public List<AdminUsuarioItem> Items { get; set; } = [];
+    public AdminUsuarioCreateItem Form { get; set; } = new();
+    public List<AdminRolItem> Roles { get; set; } = [];
+}
+
+public class AdminUsuarioItem
+{
+    public int IdUsuario { get; set; }
+    public int IdRol { get; set; }
+    public string Rol { get; set; } = string.Empty;
+    public string Nombres { get; set; } = string.Empty;
+    public string Apellidos { get; set; } = string.Empty;
+    public string Correo { get; set; } = string.Empty;
+    public bool Estado { get; set; } = true;
+    public string? NewPassword { get; set; }
+}
+
+public class AdminUsuarioCreateItem
+{
+    public int IdRol { get; set; }
+    public string Nombres { get; set; } = string.Empty;
+    public string Apellidos { get; set; } = string.Empty;
+    public string Correo { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public bool Estado { get; set; } = true;
+}
+
+public class AdminRolItem
+{
+    public int IdRol { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+}

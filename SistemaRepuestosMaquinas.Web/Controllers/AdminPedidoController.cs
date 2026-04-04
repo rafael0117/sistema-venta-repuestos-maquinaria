@@ -9,7 +9,7 @@ public class AdminPedidoController(ApiClient apiClient) : AdminBaseController(ap
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var vm = new AdminPedidoPageViewModel
         {
@@ -25,7 +25,7 @@ public class AdminPedidoController(ApiClient apiClient) : AdminBaseController(ap
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CambiarEstado(int idPedido, string estadoPedido, CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var response = await ApiClient.PutAsync($"api/pedido/{idPedido}/estado", new { estadoPedido }, cancellationToken);
         return response.IsSuccessStatusCode

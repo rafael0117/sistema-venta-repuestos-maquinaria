@@ -9,7 +9,7 @@ public class AdminMarcaController(ApiClient apiClient) : AdminBaseController(api
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var vm = new AdminMarcaPageViewModel
         {
@@ -25,7 +25,7 @@ public class AdminMarcaController(ApiClient apiClient) : AdminBaseController(api
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AdminMarcaPageViewModel model, CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var response = await ApiClient.PostAsync("api/marca", model.Form, cancellationToken);
         return response.IsSuccessStatusCode
@@ -35,9 +35,38 @@ public class AdminMarcaController(ApiClient apiClient) : AdminBaseController(api
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Update(AdminMarcaItem item, CancellationToken cancellationToken)
+    {
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
+
+        var response = await ApiClient.PutAsync($"api/marca/{item.IdMarca}", item, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? RedirectWithMessage(nameof(Index), "AdminMarca", "Marca actualizada.")
+            : RedirectWithMessage(nameof(Index), "AdminMarca", "No se pudo actualizar la marca.", true);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleEstado(int id, bool estadoActual, CancellationToken cancellationToken)
+    {
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
+
+        var item = (await ApiClient.GetAsync<List<AdminMarcaItem>>("api/marca", cancellationToken))?.FirstOrDefault(x => x.IdMarca == id);
+        if (item is null)
+            return RedirectWithMessage(nameof(Index), "AdminMarca", "Marca no encontrada.", true);
+
+        item.Estado = !estadoActual;
+        var response = await ApiClient.PutAsync($"api/marca/{id}", item, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? RedirectWithMessage(nameof(Index), "AdminMarca", $"Estado cambiado a {(item.Estado ? "Activo" : "Inactivo")}.")
+            : RedirectWithMessage(nameof(Index), "AdminMarca", "No se pudo cambiar el estado.", true);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var response = await ApiClient.DeleteAsync($"api/marca/{id}", cancellationToken);
         return response.IsSuccessStatusCode

@@ -3,8 +3,7 @@
 @{
     var rol = HttpContextAccessor.HttpContext?.Session.GetString("rol");
     var isAuthenticated = !string.IsNullOrWhiteSpace(HttpContextAccessor.HttpContext?.Session.GetString("jwt"));
-    var showAdmin = string.Equals(rol, Roles.Administrador, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(rol, Roles.Vendedor, StringComparison.OrdinalIgnoreCase);
+    var showAdmin = string.Equals(rol, Roles.Administrador, StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -13,6 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Sistema Repuestos</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <header class="topbar">
@@ -37,7 +37,7 @@
 
                 @if (showAdmin)
                 {
-                    <a asp-controller="AdminDashboard" asp-action="Index">Dashboard Admin</a>
+                    <a asp-controller="AdminDashboard" asp-action="Index">Panel Admin</a>
                 }
             </nav>
         </div>
@@ -52,5 +52,71 @@
             <p>© @DateTime.Now.Year SistemaRepuestosMaquinas · Soluciones para maquinaria industrial</p>
         </div>
     </footer>
+
+    <script>
+        (() => {
+            const getAlertType = (el) => {
+                if (el.classList.contains('alert-danger')) return 'error';
+                if (el.classList.contains('alert-warning')) return 'warning';
+                return 'success';
+            };
+
+            const getAlertTitle = (type) => {
+                if (type === 'error') return 'Acción incorrecta';
+                if (type === 'warning') return 'Advertencia';
+                return 'Acción correcta';
+            };
+
+            const inlineAlerts = document.querySelectorAll('.alert');
+            inlineAlerts.forEach((alertEl) => {
+                const text = (alertEl.textContent || '').trim();
+                if (!text) return;
+
+                const type = getAlertType(alertEl);
+                Swal.fire({
+                    icon: type,
+                    title: getAlertTitle(type),
+                    text,
+                    confirmButtonText: 'Entendido'
+                });
+            });
+
+            document.querySelectorAll('form[method="post"]').forEach((form) => {
+                form.addEventListener('submit', async (event) => {
+                    if (form.dataset.confirmed === '1') return;
+                    if (form.hasAttribute('data-skip-global-confirm')) return;
+                    if ((form.getAttribute('onsubmit') || '').toLowerCase().includes('confirm(')) return;
+
+                    event.preventDefault();
+                    const actionName = form.getAttribute('data-action-name') || 'esta acción';
+
+                    const result = await Swal.fire({
+                        icon: 'warning',
+                        title: '¿Deseas continuar?',
+                        text: `Vas a ejecutar ${actionName}.`,
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, continuar',
+                        cancelButtonText: 'Cancelar'
+                    });
+
+                    if (result.isConfirmed) {
+                        form.dataset.confirmed = '1';
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Procesando',
+                            text: 'Estamos ejecutando tu acción...'
+                        });
+                        form.submit();
+                    } else {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Acción cancelada',
+                            text: 'No se realizaron cambios.'
+                        });
+                    }
+                });
+            });
+        })();
+    </script>
 </body>
 </html>

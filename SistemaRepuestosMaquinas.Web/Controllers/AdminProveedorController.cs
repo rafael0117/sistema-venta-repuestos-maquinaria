@@ -9,7 +9,7 @@ public class AdminProveedorController(ApiClient apiClient) : AdminBaseController
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var vm = new AdminProveedorPageViewModel
         {
@@ -25,7 +25,7 @@ public class AdminProveedorController(ApiClient apiClient) : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AdminProveedorPageViewModel model, CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var response = await ApiClient.PostAsync("api/proveedor", model.Form, cancellationToken);
         return response.IsSuccessStatusCode
@@ -37,7 +37,7 @@ public class AdminProveedorController(ApiClient apiClient) : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        if (!TryAuthorizeAdminOrVendedor(out var unauthorized)) return unauthorized!;
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
 
         var response = await ApiClient.DeleteAsync($"api/proveedor/{id}", cancellationToken);
         return response.IsSuccessStatusCode

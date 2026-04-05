@@ -1,5 +1,94 @@
+@model SistemaRepuestosMaquinas.Web.Models.PedidoPageViewModel
 @{
-    ViewData["Title"] = "Pedido";
+    ViewData["Title"] = "Mis pedidos";
+
+    string BadgeClass(string estado)
+    {
+        var key = (estado ?? string.Empty).Trim().ToLowerInvariant();
+        if (key.Contains("pagado") || key.Contains("entregado")) return "bg-success";
+        if (key.Contains("pendiente")) return "bg-warning text-dark";
+        if (key.Contains("cancel")) return "bg-danger";
+        return "bg-secondary";
+    }
+
+    int Progress(string estado)
+    {
+        var key = (estado ?? string.Empty).Trim().ToLowerInvariant();
+        if (key.Contains("entregado")) return 100;
+        if (key.Contains("enviado")) return 75;
+        if (key.Contains("pagado") || key.Contains("procesando")) return 50;
+        if (key.Contains("pendiente")) return 25;
+        if (key.Contains("cancel")) return 0;
+        return 15;
+    }
 }
-<h1>Pedido</h1>
-<p>Vista base del módulo Pedido. Consumirá endpoints JWT de la API.</p>
+
+<section class="mb-3">
+    <h1>📦 Mis pedidos</h1>
+    <p class="text-muted">Consulta tu historial de compras y el estado de cada pedido como en un e-commerce moderno.</p>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-info")">@Model.Message</div>
+}
+
+@if (Model.Pedidos.Count > 0)
+{
+    <div class="d-flex flex-column gap-3">
+        @foreach (var pedido in Model.Pedidos)
+        {
+            var progress = Progress(pedido.EstadoPedido);
+            <article class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+                        <div>
+                            <h5 class="mb-0">Pedido #@pedido.IdPedido</h5>
+                            <small class="text-muted">@pedido.FechaPedido.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge @BadgeClass(pedido.EstadoPedido)">@pedido.EstadoPedido</span>
+                            <p class="fw-bold mb-0 mt-1">Total: S/ @pedido.Total.ToString("N2")</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Progreso del pedido</small>
+                        <div class="progress" role="progressbar" aria-label="Progreso pedido" aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar" style="width: @progress%;">@progress%</div>
+                        </div>
+                    </div>
+
+                    <div class="row small text-muted mb-2">
+                        <div class="col-md-6"><strong>Dirección:</strong> @pedido.DireccionEntrega</div>
+                        <div class="col-md-6"><strong>Método de pago:</strong> @pedido.MetodoPago</div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cant.</th>
+                                    <th>P. Unit.</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var detalle in pedido.Detalles)
+                                {
+                                    <tr>
+                                        <td>@detalle.Producto</td>
+                                        <td>@detalle.Cantidad</td>
+                                        <td>S/ @detalle.PrecioUnitario.ToString("N2")</td>
+                                        <td>S/ @detalle.SubTotal.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+}

@@ -12,6 +12,7 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 public class MarcaController(ApplicationDbContext context) : ControllerBase
 {
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
         var data = await context.Marcas.AsNoTracking().OrderBy(x => x.Nombre).ToListAsync(cancellationToken);

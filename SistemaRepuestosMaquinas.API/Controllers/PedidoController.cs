@@ -40,7 +40,30 @@ public class PedidoController(ApplicationDbContext context) : ControllerBase
             .AsNoTracking()
             .Where(x => x.IdCliente == idCliente)
             .Include(x => x.Detalles)
+            .ThenInclude(x => x.Producto)
             .OrderByDescending(x => x.FechaPedido)
+            .Select(x => new
+            {
+                x.IdPedido,
+                x.IdCliente,
+                x.FechaPedido,
+                x.Total,
+                x.EstadoPedido,
+                x.DireccionEntrega,
+                x.MetodoPago,
+                detalles = x.Detalles
+                    .OrderBy(d => d.IdPedidoDetalle)
+                    .Select(d => new
+                    {
+                        d.IdPedidoDetalle,
+                        d.IdProducto,
+                        producto = d.Producto != null ? d.Producto.Nombre : $"Producto {d.IdProducto}",
+                        d.Cantidad,
+                        d.PrecioUnitario,
+                        d.SubTotal
+                    })
+                    .ToList()
+            })
             .ToListAsync(cancellationToken);
 
         return Ok(data);

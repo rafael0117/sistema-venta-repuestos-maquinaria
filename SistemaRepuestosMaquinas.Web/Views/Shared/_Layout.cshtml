@@ -23,6 +23,7 @@
                 <a asp-controller="Home" asp-action="Index">Inicio</a>
                 <a asp-controller="Catalogo" asp-action="Index">Catálogo</a>
                 <a asp-controller="Carrito" asp-action="Index">Carrito</a>
+                <a asp-controller="Pedido" asp-action="Index">Mis pedidos</a>
                 @if (isAuthenticated)
                 {
                     <form asp-controller="Cuenta" asp-action="Logout" method="post" class="nav-logout-form">

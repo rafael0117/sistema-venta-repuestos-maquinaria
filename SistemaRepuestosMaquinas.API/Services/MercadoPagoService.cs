@@ -19,37 +19,35 @@ public class MercadoPagoService(IOptions<MercadoPagoOptions> options) : IMercado
         if (request.Items.Count == 0)
             return new MercadoPagoPreferenceResult(false, "No hay ítems para generar la preferencia de pago.", null, null);
 
-        var payload = new
+        var payload = new Dictionary<string, object?>
         {
-            items = request.Items.Select(x => new
+            ["items"] = request.Items.Select(x => new
             {
                 title = x.Title,
                 quantity = x.Quantity,
                 currency_id = "PEN",
                 unit_price = Math.Round(x.UnitPrice, 2, MidpointRounding.AwayFromZero)
             }),
-            payer = new { email = request.Email },
-            back_urls = new
+            ["payer"] = new { email = request.Email },
+            ["back_urls"] = new
             {
                 success = request.SuccessUrl,
                 failure = request.FailureUrl,
                 pending = request.PendingUrl
             },
-            auto_return = "approved",
-            external_reference = $"cliente-{request.IdCliente}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}",
-            metadata = new
+            ["auto_return"] = "approved",
+            ["external_reference"] = $"cliente-{request.IdCliente}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}",
+            ["metadata"] = new
             {
                 cliente_id = request.IdCliente,
                 integracion = "checkout_pro"
             }
         };
 
-        using var client = new HttpClient
-        {
-            BaseAddress = new Uri("https://api.mercadopago.com/")
-        };
+        if (!string.IsNullOrWhiteSpace(config.WebhookNotificationUrl))
+            payload["notification_url"] = config.WebhookNotificationUrl;
 
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", config.AccessToken);
+        using var client = BuildHttpClient(config.AccessToken);
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "checkout/preferences")
         {
@@ -81,5 +79,55 @@ public class MercadoPagoService(IOptions<MercadoPagoOptions> options) : IMercado
         {
             return new MercadoPagoPreferenceResult(false, "Respuesta inválida al crear la preferencia de Mercado Pago.", null, null);
         }
+    }
+
+    public async Task<MercadoPagoPaymentLookupResult> GetPaymentByIdAsync(string paymentId, CancellationToken cancellationToken = default)
+    {
+        var config = options.Value;
+        if (string.IsNullOrWhiteSpace(config.AccessToken))
+            return new MercadoPagoPaymentLookupResult(false, "Mercado Pago no está configurado (AccessToken).", null, null, null, null, 0m);
+
+        if (string.IsNullOrWhiteSpace(paymentId))
+            return new MercadoPagoPaymentLookupResult(false, "PaymentId inválido.", null, null, null, null, 0m);
+
+        using var client = BuildHttpClient(config.AccessToken);
+        using var response = await client.GetAsync($"v1/payments/{paymentId}", cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            return new MercadoPagoPaymentLookupResult(false, $"No se pudo consultar pago en Mercado Pago: {content}", paymentId, null, null, null, 0m);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            var root = doc.RootElement;
+
+            var status = root.TryGetProperty("status", out var statusProp) ? statusProp.GetString() : null;
+            var externalReference = root.TryGetProperty("external_reference", out var externalProp) ? externalProp.GetString() : null;
+            var amount = root.TryGetProperty("transaction_amount", out var amountProp) && amountProp.TryGetDecimal(out var amountValue)
+                ? amountValue
+                : 0m;
+
+            string? payerEmail = null;
+            if (root.TryGetProperty("payer", out var payerProp) && payerProp.TryGetProperty("email", out var emailProp))
+                payerEmail = emailProp.GetString();
+
+            return new MercadoPagoPaymentLookupResult(true, "Pago consultado correctamente.", paymentId, status, externalReference, payerEmail, amount);
+        }
+        catch (JsonException)
+        {
+            return new MercadoPagoPaymentLookupResult(false, "Respuesta inválida consultando pago en Mercado Pago.", paymentId, null, null, null, 0m);
+        }
+    }
+
+    private static HttpClient BuildHttpClient(string accessToken)
+    {
+        var client = new HttpClient
+        {
+            BaseAddress = new Uri("https://api.mercadopago.com/")
+        };
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return client;
     }
 }

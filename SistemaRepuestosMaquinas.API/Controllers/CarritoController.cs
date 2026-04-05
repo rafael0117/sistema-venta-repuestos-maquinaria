@@ -16,7 +16,8 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 public class CarritoController(
     ApplicationDbContext context,
     IMercadoPagoService mercadoPagoService,
-    IOptions<MercadoPagoOptions> mercadoPagoOptions) : ControllerBase
+    IOptions<MercadoPagoOptions> mercadoPagoOptions,
+    ILogger<CarritoController> logger) : ControllerBase
 {
     [HttpGet("cliente/{idCliente:int}")]
     public async Task<IActionResult> Get(int idCliente, CancellationToken cancellationToken)
@@ -174,6 +175,71 @@ public class CarritoController(
             });
         }
 
+        var result = await RegistrarPedidoDesdeCarritoAsync(
+            idCliente,
+            request.DireccionEntrega,
+            request.PaymentId,
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("webhook/mercadopago")]
+    [HttpPost("webhook/mercadopago")]
+    public async Task<IActionResult> WebhookMercadoPago(
+        [FromQuery(Name = "id")] string? paymentId,
+        [FromQuery(Name = "data.id")] string? dataId,
+        [FromQuery(Name = "topic")] string? topic,
+        [FromQuery(Name = "type")] string? type,
+        CancellationToken cancellationToken)
+    {
+        var resolvedPaymentId = string.IsNullOrWhiteSpace(paymentId) ? dataId : paymentId;
+        var eventType = string.IsNullOrWhiteSpace(type) ? topic : type;
+
+        if (!string.Equals(eventType, "payment", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(resolvedPaymentId))
+            return Ok(new { received = true, ignored = true });
+
+        var lookup = await mercadoPagoService.GetPaymentByIdAsync(resolvedPaymentId, cancellationToken);
+        if (!lookup.IsSuccess)
+        {
+            logger.LogWarning("Webhook MP: no se pudo consultar payment {PaymentId}. {Message}", resolvedPaymentId, lookup.Message);
+            return Ok(new { received = true, processed = false, message = lookup.Message });
+        }
+
+        if (!string.Equals(lookup.Status, "approved", StringComparison.OrdinalIgnoreCase))
+            return Ok(new { received = true, processed = false, status = lookup.Status });
+
+        var idCliente = ExtractClienteId(lookup.ExternalReference);
+        if (!idCliente.HasValue)
+        {
+            logger.LogWarning("Webhook MP: external_reference inválido para payment {PaymentId}. ExternalReference={ExternalReference}", resolvedPaymentId, lookup.ExternalReference);
+            return Ok(new { received = true, processed = false, message = "external_reference inválido" });
+        }
+
+        var result = await RegistrarPedidoDesdeCarritoAsync(idCliente.Value, null, lookup.PaymentId, cancellationToken);
+        return Ok(new { received = true, processed = result.PedidoCreado, result.Message, result.Pedido });
+    }
+
+    private async Task<ConfirmacionCheckoutResult> RegistrarPedidoDesdeCarritoAsync(int idCliente, string? direccionEntrega, string? paymentId, CancellationToken cancellationToken)
+    {
+        var methodTag = string.IsNullOrWhiteSpace(paymentId) ? "CHECKOUT_PRO" : $"CHECKOUT_PRO:{paymentId}";
+
+        if (!string.IsNullOrWhiteSpace(paymentId))
+        {
+            var duplicado = await context.Pedidos
+                .AsNoTracking()
+                .Where(x => x.IdCliente == idCliente && x.MetodoPago == methodTag)
+                .OrderByDescending(x => x.IdPedido)
+                .Select(x => new PedidoData(x.IdPedido, x.EstadoPedido, x.Total, x.FechaPedido))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (duplicado is not null)
+            {
+                return new ConfirmacionCheckoutResult(true, "El pedido ya estaba registrado para este pago.", duplicado);
+            }
+        }
+
         var carrito = await context.Carritos
             .Include(x => x.Detalles)
             .ThenInclude(x => x.Producto)
@@ -185,22 +251,10 @@ public class CarritoController(
                 .AsNoTracking()
                 .Where(x => x.IdCliente == idCliente)
                 .OrderByDescending(x => x.IdPedido)
-                .Select(x => new
-                {
-                    x.IdPedido,
-                    x.EstadoPedido,
-                    x.Total,
-                    x.FechaPedido
-                })
+                .Select(x => new PedidoData(x.IdPedido, x.EstadoPedido, x.Total, x.FechaPedido))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return Ok(new
-            {
-                pedidoCreado = false,
-                estado = ultimoPedido?.EstadoPedido ?? "SinPedido",
-                pedido = ultimoPedido,
-                message = "No hay carrito abierto para procesar."
-            });
+            return new ConfirmacionCheckoutResult(false, "No hay carrito abierto para procesar.", ultimoPedido);
         }
 
         var productIds = carrito.Detalles.Select(x => x.IdProducto).Distinct().ToList();
@@ -209,12 +263,12 @@ public class CarritoController(
         foreach (var item in carrito.Detalles)
         {
             if (!productos.TryGetValue(item.IdProducto, out var p) || !p.Estado || p.Stock < item.Cantidad)
-                return BadRequest(new { message = $"Stock insuficiente para producto {item.IdProducto}." });
+                return new ConfirmacionCheckoutResult(false, $"Stock insuficiente para producto {item.IdProducto}.", null);
         }
 
-        var direccion = string.IsNullOrWhiteSpace(request.DireccionEntrega)
+        var direccion = string.IsNullOrWhiteSpace(direccionEntrega)
             ? "Dirección no especificada"
-            : request.DireccionEntrega.Trim();
+            : direccionEntrega.Trim();
 
         var total = carrito.Detalles.Sum(x => x.Cantidad * x.PrecioUnitario);
 
@@ -227,7 +281,7 @@ public class CarritoController(
             Total = total,
             EstadoPedido = "Pagado",
             DireccionEntrega = direccion,
-            MetodoPago = "CHECKOUT_PRO"
+            MetodoPago = methodTag
         };
 
         context.Pedidos.Add(pedido);
@@ -251,21 +305,22 @@ public class CarritoController(
         await context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
-        return Ok(new
-        {
-            pedidoCreado = true,
-            message = "Pedido registrado correctamente.",
-            pedido = new
-            {
-                pedido.IdPedido,
-                pedido.EstadoPedido,
-                pedido.Total,
-                pedido.FechaPedido
-            }
-        });
+        return new ConfirmacionCheckoutResult(true, "Pedido registrado correctamente.", new PedidoData(pedido.IdPedido, pedido.EstadoPedido, pedido.Total, pedido.FechaPedido));
+    }
+
+    private static int? ExtractClienteId(string? externalReference)
+    {
+        if (string.IsNullOrWhiteSpace(externalReference)) return null;
+
+        var tokens = externalReference.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length < 2) return null;
+
+        return int.TryParse(tokens[1], out var idCliente) ? idCliente : null;
     }
 
     public record AddCarritoItemRequest(int IdProducto, int Cantidad);
     public record UpdateCarritoItemRequest(int Cantidad);
     public record ConfirmarCheckoutProRequest(string? Status, string? PaymentId, string? PreferenceId, string? DireccionEntrega);
+    private sealed record PedidoData(int IdPedido, string EstadoPedido, decimal Total, DateTime FechaPedido);
+    private sealed record ConfirmacionCheckoutResult(bool PedidoCreado, string Message, PedidoData? Pedido);
 }

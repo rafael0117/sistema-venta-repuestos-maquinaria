@@ -3,44 +3,58 @@
     ViewData["Title"] = "Catálogo";
 }
 
-<h1 class="mb-3">Catálogo de repuestos</h1>
+<section class="catalog-shell">
+<div>
+    <h1 class="mb-2">Catálogo de repuestos</h1>
+    <p class="text-muted">Explora piezas por marca, categoría y disponibilidad en tiempo real.</p>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(TempData["Message"] as string))
 {
     <div class="alert @(((TempData["IsError"] as string) == "1") ? "alert-danger" : "alert-success")">@TempData["Message"]</div>
 }
 
-<form method="get" class="row g-2 mb-3">
-    <div class="col-md-6">
-        <input name="Texto" value="@Model.Texto" class="form-control" placeholder="Buscar por nombre o descripción" />
+<div class="card catalog-toolbar">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-6">
+                <input name="Texto" value="@Model.Texto" class="form-control" placeholder="Buscar por nombre o descripción" />
+            </div>
+            <div class="col-md-2">
+                <input name="PageSize" value="@Model.PageSize" type="number" min="1" max="100" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <input name="Page" value="@Model.Page" type="number" min="1" class="form-control" />
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-primary" type="submit">Buscar</button>
+            </div>
+        </form>
     </div>
-    <div class="col-md-2">
-        <input name="PageSize" value="@Model.PageSize" type="number" min="1" max="100" class="form-control" />
-    </div>
-    <div class="col-md-2">
-        <input name="Page" value="@Model.Page" type="number" min="1" class="form-control" />
-    </div>
-    <div class="col-md-2 d-grid">
-        <button class="btn btn-primary" type="submit">Buscar</button>
-    </div>
-</form>
+</div>
 
 <p class="text-muted">Total encontrados: <strong>@Model.Total</strong></p>
 
-<div class="row g-3">
+<div class="row g-3 catalog-grid">
 @foreach (var item in Model.Productos)
 {
     <div class="col-md-4">
         <div class="card h-100">
             <div class="card-body d-flex flex-column">
+                <div class="catalog-card-top">
+                    <span class="catalog-chip">@item.Categoria</span>
+                    <span class="small text-muted">#@item.Codigo</span>
+                </div>
                 <img src="@item.ImagenUrl" alt="@item.Nombre" class="catalog-card-image mb-2" />
                 <h5 class="card-title">@item.Nombre</h5>
-                <p class="card-text small mb-1"><strong>Código:</strong> @item.Codigo</p>
-                <p class="card-text small mb-1"><strong>Marca:</strong> @item.Marca</p>
-                <p class="card-text small mb-1"><strong>Categoría:</strong> @item.Categoria</p>
-                <p class="card-text">@item.Descripcion</p>
-                <p class="fw-bold text-success mb-1">S/ @item.PrecioVenta</p>
-                <p class="small text-muted">Stock: @item.Stock</p>
+                <div class="catalog-meta small">
+                    <p class="card-text mb-1"><strong>Marca:</strong> @item.Marca</p>
+                    <p class="card-text mb-1">@item.Descripcion</p>
+                </div>
+                <p class="price-tag">S/ @item.PrecioVenta.ToString("N2")</p>
+                <span class="stock-tag @(item.Stock > 0 ? "in" : "out")">
+                    @(item.Stock > 0 ? $"Stock disponible: {item.Stock}" : "Sin stock")
+                </span>
 
                 <div class="mt-auto d-flex gap-2">
                     <a class="btn btn-outline-primary btn-sm" asp-controller="Catalogo" asp-action="Detalle" asp-route-idProducto="@item.IdProducto">Ver detalle</a>
@@ -57,3 +71,4 @@
     </div>
 }
 </div>
+</section>

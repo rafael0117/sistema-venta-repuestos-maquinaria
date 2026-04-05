@@ -1,7 +1,11 @@
 @model SistemaRepuestosMaquinas.Web.Models.AdminPedidoPageViewModel
 @{ ViewData["Title"] = "Admin Pedidos"; }
-<h1 class="mb-3">Admin · Pedidos</h1>
+<h1 class="mb-3"><i class="fa-solid fa-clipboard-list"></i> Admin · Pedidos</h1>
 @if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError?"alert-danger":"alert-success")">@Model.Message</div> }
-<table class="table table-striped"><thead><tr><th>Id</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Cambiar</th></tr></thead><tbody>
-@foreach (var x in Model.Items){<tr><td>@x.IdPedido</td><td>@x.IdCliente</td><td>@x.FechaPedido</td><td>S/ @x.Total</td><td>@x.EstadoPedido</td><td><form asp-action="CambiarEstado" method="post" class="row g-2">@Html.AntiForgeryToken()<input type="hidden" name="idPedido" value="@x.IdPedido"/><input type="text" name="estadoPedido" class="form-control" value="@x.EstadoPedido" /><button class="btn btn-primary btn-sm">Guardar</button></form></td></tr>}
-</tbody></table>
+<div class="table-wrap" data-paginated-table data-page-size="8"><table class="table table-striped"><thead><tr><th>Id</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+@foreach (var x in Model.Items){<tr><td>@x.IdPedido</td><td>@x.IdCliente</td><td>@x.FechaPedido.ToString("dd/MM/yyyy HH:mm")</td><td>S/ @x.Total</td><td>@x.EstadoPedido</td><td><button type="button" class="btn btn-primary btn-sm" data-open-modal="edit-pedido-modal" data-id="@x.IdPedido" data-estado="@x.EstadoPedido"><i class="fa-solid fa-pen"></i> Editar estado</button></td></tr>}
+</tbody></table><div class="pagination-controls" data-pagination-controls></div></div>
+
+<div id="edit-pedido-modal" class="crud-modal-overlay"><div class="crud-modal" style="width:min(520px,96vw)"><div class="crud-modal-header"><h3>Editar estado de pedido</h3><button type="button" class="modal-close" data-close-modal>✕</button></div><div class="crud-modal-body"><form asp-action="CambiarEstado" method="post" class="row g-2">@Html.AntiForgeryToken()<input type="hidden" name="idPedido" id="pedido-id"/><div class="col-md-12"><label class="form-label">Estado</label><input type="text" name="estadoPedido" id="pedido-estado" class="form-control" /></div><div class="col-12"><button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></div></form></div></div></div>
+
+@section Scripts {<script>document.querySelectorAll('[data-open-modal="edit-pedido-modal"]').forEach((b)=>b.addEventListener('click',()=>{document.getElementById('pedido-id').value=b.dataset.id||'';document.getElementById('pedido-estado').value=b.dataset.estado||'';}));</script>}

@@ -1,96 +1,13 @@
 @model SistemaRepuestosMaquinas.Web.Models.AdminMarcaPageViewModel
-@{
-    ViewData["Title"] = "CRUD Marcas";
-}
+@{ ViewData["Title"] = "CRUD Marcas"; }
+<h1 class="mb-3"><i class="fa-solid fa-tags"></i> Admin · CRUD Marcas</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div> }
+<div class="crud-toolbar"><p class="text-muted mb-1">Gestiona marcas con modales de crear/editar.</p><button type="button" class="btn btn-success" data-open-modal="create-marca-modal"><i class="fa-solid fa-plus"></i> Agregar marca</button></div>
+<div class="table-wrap" data-paginated-table data-page-size="8"><table class="table table-striped"><thead><tr><th>Id</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+@foreach (var x in Model.Items){<tr><td>@x.IdMarca</td><td>@x.Nombre</td><td><span class="badge @(x.Estado ? "bg-success" : "bg-secondary")">@(x.Estado ? "Activo" : "Inactivo")</span></td><td class="d-flex gap-1 flex-wrap"><button type="button" class="btn btn-primary btn-sm" data-open-modal="edit-marca-modal" data-id="@x.IdMarca" data-nombre="@x.Nombre" data-estado="@x.Estado.ToString().ToLower()"><i class="fa-solid fa-pen"></i> Editar</button><form asp-action="ToggleEstado" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@x.IdMarca" /><input type="hidden" name="estadoActual" value="@x.Estado.ToString().ToLower()" /><button class="btn btn-warning btn-sm"><i class="fa-solid fa-power-off"></i> Estado</button></form><form asp-action="Delete" method="post" onsubmit="return confirm('¿Eliminar marca?');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@x.IdMarca" /><button class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> Eliminar</button></form></td></tr>}
+</tbody></table><div class="pagination-controls" data-pagination-controls></div></div>
 
-<h1 class="mb-3">Admin · CRUD Marcas</h1>
+<div id="create-marca-modal" class="crud-modal-overlay"><div class="crud-modal"><div class="crud-modal-header"><h3>Nueva marca</h3><button type="button" class="modal-close" data-close-modal>✕</button></div><div class="crud-modal-body"><form asp-action="Create" method="post" class="row g-2">@Html.AntiForgeryToken()<div class="col-md-8"><input asp-for="Form.Nombre" class="form-control" placeholder="Nombre" required /></div><div class="col-md-4"><select asp-for="Form.Estado" class="form-control"><option value="true">Activo</option><option value="false">Inactivo</option></select></div><div class="col-12"><button class="btn btn-success"><i class="fa-solid fa-floppy-disk"></i> Crear</button></div></form></div></div></div>
+<div id="edit-marca-modal" class="crud-modal-overlay"><div class="crud-modal"><div class="crud-modal-header"><h3>Editar marca</h3><button type="button" class="modal-close" data-close-modal>✕</button></div><div class="crud-modal-body"><form asp-action="Update" method="post" class="row g-2">@Html.AntiForgeryToken()<input type="hidden" name="IdMarca" id="marca-id"/><div class="col-md-8"><input name="Nombre" id="marca-nombre" class="form-control" required /></div><div class="col-md-4"><select name="Estado" id="marca-estado" class="form-control"><option value="true">Activo</option><option value="false">Inactivo</option></select></div><div class="col-12"><button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></div></form></div></div></div>
 
-@if (!string.IsNullOrWhiteSpace(Model.Message))
-{
-    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">
-        @Model.Message
-    </div>
-}
-
-<div class="card mb-3">
-    <div class="card-header">Nueva marca</div>
-    <div class="card-body">
-        <form asp-action="Create" method="post" class="row g-2">
-            @Html.AntiForgeryToken()
-
-            <div class="col-md-8">
-                <label class="form-label">Nombre</label>
-                <input asp-for="Form.Nombre" class="form-control" required />
-            </div>
-
-            <div class="col-md-2">
-                <label class="form-label">Estado</label>
-                <select asp-for="Form.Estado" class="form-control">
-                    <option value="true">Activo</option>
-                    <option value="false">Inactivo</option>
-                </select>
-            </div>
-
-            <div class="col-md-2 align-self-end">
-                <button class="btn btn-success" type="submit">Crear</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Nombre</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-
-    <tbody>
-        @foreach (var x in Model.Items)
-        {
-            <tr>
-                <td>@x.IdMarca</td>
-
-                <td>
-                    <input form="form-@x.IdMarca" name="Nombre" value="@x.Nombre" class="form-control" />
-                </td>
-
-                <td>
-                    <span class="badge @(x.Estado ? "bg-success" : "bg-secondary")">
-                        @(x.Estado ? "Activo" : "Inactivo")
-                    </span>
-                </td>
-
-                <td class="d-flex gap-1">
-
-                    <!-- UPDATE -->
-                    <form id="form-@x.IdMarca" asp-action="Update" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="IdMarca" value="@x.IdMarca" />
-                        <input type="hidden" name="Estado" value="@x.Estado.ToString().ToLower()" />
-                        <button class="btn btn-primary btn-sm">Guardar</button>
-                    </form>
-
-                    <!-- TOGGLE -->
-                    <form asp-action="ToggleEstado" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@x.IdMarca" />
-                        <input type="hidden" name="estadoActual" value="@x.Estado.ToString().ToLower()" />
-                        <button class="btn btn-warning btn-sm">Estado</button>
-                    </form>
-
-                    <!-- DELETE -->
-                    <form asp-action="Delete" method="post" onsubmit="return confirm('¿Eliminar marca?');">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@x.IdMarca" />
-                        <button class="btn btn-danger btn-sm">Eliminar</button>
-                    </form>
-
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+@section Scripts {<script>document.querySelectorAll('[data-open-modal="edit-marca-modal"]').forEach((b)=>b.addEventListener('click',()=>{document.getElementById('marca-id').value=b.dataset.id||'';document.getElementById('marca-nombre').value=b.dataset.nombre||'';document.getElementById('marca-estado').value=b.dataset.estado||'true';}));</script>}

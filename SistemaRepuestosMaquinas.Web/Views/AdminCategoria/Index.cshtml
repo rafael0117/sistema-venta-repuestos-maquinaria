@@ -1,103 +1,47 @@
 @model SistemaRepuestosMaquinas.Web.Models.AdminCategoriaPageViewModel
-@{
-    ViewData["Title"] = "CRUD Categorías";
-}
+@{ ViewData["Title"] = "CRUD Categorías"; }
+<h1 class="mb-3"><i class="fa-solid fa-layer-group"></i> Admin · CRUD Categorías</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div> }
 
-<h1 class="mb-3">Admin · CRUD Categorías</h1>
-
-@if (!string.IsNullOrWhiteSpace(Model.Message))
-{
-    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">
-        @Model.Message
-    </div>
-}
-
-<div class="card mb-3">
-    <div class="card-header">Nueva categoría</div>
-    <div class="card-body">
-        <form asp-action="Create" method="post" class="row g-2">
-            @Html.AntiForgeryToken()
-
-            <div class="col-md-4">
-                <input asp-for="Form.Nombre" class="form-control" placeholder="Nombre" required />
-            </div>
-
-            <div class="col-md-6">
-                <input asp-for="Form.Descripcion" class="form-control" placeholder="Descripción" />
-            </div>
-
-            <div class="col-md-2">
-                <select asp-for="Form.Estado" class="form-control">
-                    <option value="true">Activo</option>
-                    <option value="false">Inactivo</option>
-                </select>
-            </div>
-
-            <div class="col-12">
-                <button class="btn btn-success">Crear</button>
-            </div>
-        </form>
-    </div>
+<div class="crud-toolbar">
+    <p class="text-muted mb-1">Listado paginado de categorías.</p>
+    <button type="button" class="btn btn-success" data-open-modal="create-categoria-modal"><i class="fa-solid fa-plus"></i> Agregar categoría</button>
 </div>
 
+<div class="table-wrap" data-paginated-table data-page-size="8">
 <table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-
-    <tbody>
-        @foreach (var x in Model.Items)
-        {
-            <tr>
-                <td>@x.IdCategoria</td>
-
-                <td>
-                    <input form="form-@x.IdCategoria" name="Nombre" value="@x.Nombre" class="form-control" />
-                </td>
-
-                <td>
-                    <input form="form-@x.IdCategoria" name="Descripcion" value="@x.Descripcion" class="form-control" />
-                </td>
-
-                <td>
-                    <span class="badge @(x.Estado ? "bg-success" : "bg-secondary")">
-                        @(x.Estado ? "Activo" : "Inactivo")
-                    </span>
-                </td>
-
-                <td class="d-flex gap-1">
-
-                    <!-- UPDATE -->
-                    <form id="form-@x.IdCategoria" asp-action="Update" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="IdCategoria" value="@x.IdCategoria" />
-                        <input type="hidden" name="Estado" value="@x.Estado.ToString().ToLower()" />
-                        <button class="btn btn-primary btn-sm">Guardar</button>
-                    </form>
-
-                    <!-- TOGGLE -->
-                    <form asp-action="ToggleEstado" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@x.IdCategoria" />
-                        <input type="hidden" name="estadoActual" value="@x.Estado.ToString().ToLower()" />
-                        <button class="btn btn-warning btn-sm">Estado</button>
-                    </form>
-
-                    <!-- DELETE -->
-                    <form asp-action="Delete" method="post" onsubmit="return confirm('¿Eliminar?');">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@x.IdCategoria" />
-                        <button class="btn btn-danger btn-sm">Eliminar</button>
-                    </form>
-
-                </td>
-            </tr>
-        }
-    </tbody>
+<thead><tr><th>Id</th><th>Nombre</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr></thead>
+<tbody>
+@foreach (var x in Model.Items)
+{
+<tr>
+<td>@x.IdCategoria</td><td>@x.Nombre</td><td>@x.Descripcion</td>
+<td><span class="badge @(x.Estado ? "bg-success" : "bg-secondary")">@(x.Estado ? "Activo" : "Inactivo")</span></td>
+<td class="d-flex gap-1 flex-wrap">
+<button type="button" class="btn btn-primary btn-sm" data-open-modal="edit-categoria-modal" data-id="@x.IdCategoria" data-nombre="@x.Nombre" data-descripcion="@x.Descripcion" data-estado="@x.Estado.ToString().ToLower()"><i class="fa-solid fa-pen"></i> Editar</button>
+<form asp-action="ToggleEstado" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@x.IdCategoria" /><input type="hidden" name="estadoActual" value="@x.Estado.ToString().ToLower()" /><button class="btn btn-warning btn-sm"><i class="fa-solid fa-power-off"></i> Estado</button></form>
+<form asp-action="Delete" method="post" onsubmit="return confirm('¿Eliminar?');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@x.IdCategoria" /><button class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> Eliminar</button></form>
+</td>
+</tr>
+}
+</tbody>
 </table>
+<div class="pagination-controls" data-pagination-controls></div>
+</div>
+
+<div id="create-categoria-modal" class="crud-modal-overlay"><div class="crud-modal"><div class="crud-modal-header"><h3>Nueva categoría</h3><button type="button" class="modal-close" data-close-modal>✕</button></div><div class="crud-modal-body"><form asp-action="Create" method="post" class="row g-2">@Html.AntiForgeryToken()<div class="col-md-5"><input asp-for="Form.Nombre" class="form-control" placeholder="Nombre" required /></div><div class="col-md-5"><input asp-for="Form.Descripcion" class="form-control" placeholder="Descripción" /></div><div class="col-md-2"><select asp-for="Form.Estado" class="form-control"><option value="true">Activo</option><option value="false">Inactivo</option></select></div><div class="col-12"><button class="btn btn-success"><i class="fa-solid fa-floppy-disk"></i> Crear</button></div></form></div></div></div>
+
+<div id="edit-categoria-modal" class="crud-modal-overlay"><div class="crud-modal"><div class="crud-modal-header"><h3>Editar categoría</h3><button type="button" class="modal-close" data-close-modal>✕</button></div><div class="crud-modal-body"><form asp-action="Update" method="post" class="row g-2">@Html.AntiForgeryToken()<input type="hidden" name="IdCategoria" id="cat-id"/><div class="col-md-5"><input name="Nombre" id="cat-nombre" class="form-control" required /></div><div class="col-md-5"><input name="Descripcion" id="cat-descripcion" class="form-control" /></div><div class="col-md-2"><select name="Estado" id="cat-estado" class="form-control"><option value="true">Activo</option><option value="false">Inactivo</option></select></div><div class="col-12"><button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></div></form></div></div></div>
+
+@section Scripts {
+<script>
+    document.querySelectorAll('[data-open-modal="edit-categoria-modal"]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            document.getElementById('cat-id').value = btn.dataset.id || '';
+            document.getElementById('cat-nombre').value = btn.dataset.nombre || '';
+            document.getElementById('cat-descripcion').value = btn.dataset.descripcion || '';
+            document.getElementById('cat-estado').value = btn.dataset.estado || 'true';
+        });
+    });
+</script>
+}

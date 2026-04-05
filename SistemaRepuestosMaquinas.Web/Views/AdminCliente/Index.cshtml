@@ -1,7 +1,7 @@
 @model SistemaRepuestosMaquinas.Web.Models.AdminClientePageViewModel
 @{ ViewData["Title"] = "Admin Clientes"; }
-<h1 class="mb-3">Admin · Clientes</h1>
+<h1 class="mb-3"><i class="fa-solid fa-users"></i> Admin · Clientes</h1>
 @if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError?"alert-danger":"alert-success")">@Model.Message</div> }
-<table class="table table-striped"><thead><tr><th>Id</th><th>Cliente</th><th>Correo</th><th>Doc</th><th>Teléfono</th><th>Dirección</th></tr></thead><tbody>
+<div class="table-wrap" data-paginated-table data-page-size="10"><table class="table table-striped"><thead><tr><th>Id</th><th>Cliente</th><th>Correo</th><th>Doc</th><th>Teléfono</th><th>Dirección</th></tr></thead><tbody>
 @foreach (var x in Model.Items){<tr><td>@x.IdCliente</td><td>@x.Nombres @x.Apellidos</td><td>@x.Correo</td><td>@x.TipoDocumento @x.NumeroDocumento</td><td>@x.Telefono</td><td>@x.Direccion</td></tr>}
-</tbody></table>
+</tbody></table><div class="pagination-controls" data-pagination-controls></div></div>

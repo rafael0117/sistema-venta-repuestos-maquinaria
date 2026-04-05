@@ -3,140 +3,152 @@
     ViewData["Title"] = "CRUD Productos";
 }
 
-<h1 class="mb-3">Admin · CRUD Productos</h1>
+<h1 class="mb-3"><i class="fa-solid fa-box-open"></i> Admin · CRUD Productos</h1>
 
 @if (!string.IsNullOrWhiteSpace(Model.Message))
 {
-    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">
-        @Model.Message
-    </div>
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
 }
 
-<div class="card mb-3">
-    <div class="card-header">Nuevo producto</div>
-    <div class="card-body">
-        <form asp-action="Create" method="post" class="row g-2">
-            @Html.AntiForgeryToken()
+<div class="crud-toolbar">
+    <p class="text-muted mb-1">Gestiona productos con imágenes, edición por modal y tabla paginada.</p>
+    <button type="button" class="btn btn-success" data-open-modal="create-producto-modal">
+        <i class="fa-solid fa-plus"></i> Agregar producto
+    </button>
+</div>
 
-            <div class="col-md-2">
-                <input asp-for="Form.Codigo" class="form-control" placeholder="Código" required />
-            </div>
+<div class="table-wrap" data-paginated-table data-page-size="8">
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Imagen</th>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var x in Model.Items)
+            {
+                var image = string.IsNullOrWhiteSpace(x.ImagenUrl) ? "https://via.placeholder.com/52x52?text=IMG" : x.ImagenUrl;
+                <tr>
+                    <td>@x.IdProducto</td>
+                    <td><img src="@image" alt="@x.Nombre" class="image-preview-thumb" /></td>
+                    <td>@x.Codigo</td>
+                    <td>@x.Nombre</td>
+                    <td>S/ @x.PrecioVenta</td>
+                    <td>@x.Stock</td>
+                    <td><span class="badge @(x.Estado ? "bg-success" : "bg-secondary")">@(x.Estado ? "Activo" : "Inactivo")</span></td>
+                    <td class="d-flex gap-1 flex-wrap">
+                        <button type="button"
+                                class="btn btn-primary btn-sm"
+                                data-open-modal="edit-producto-modal"
+                                data-id="@x.IdProducto"
+                                data-codigo="@x.Codigo"
+                                data-nombre="@x.Nombre"
+                                data-idcategoria="@x.IdCategoria"
+                                data-idmarca="@x.IdMarca"
+                                data-precio="@x.PrecioVenta"
+                                data-stock="@x.Stock"
+                                data-stockminimo="@x.StockMinimo"
+                                data-descripcion="@x.Descripcion"
+                                data-imagenurl="@x.ImagenUrl"
+                                data-estado="@x.Estado.ToString().ToLower()">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </button>
 
-            <div class="col-md-2">
-                <input asp-for="Form.Nombre" class="form-control" placeholder="Nombre" required />
-            </div>
+                        <form asp-action="ToggleEstado" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@x.IdProducto" />
+                            <input type="hidden" name="estadoActual" value="@x.Estado.ToString().ToLower()" />
+                            <button class="btn btn-warning btn-sm"><i class="fa-solid fa-power-off"></i> Estado</button>
+                        </form>
 
-            <div class="col-md-2">
-                <input asp-for="Form.IdCategoria" class="form-control" type="number" placeholder="Categoría" required />
-            </div>
+                        <form asp-action="Delete" method="post" onsubmit="return confirm('¿Eliminar producto?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@x.IdProducto" />
+                            <button class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="pagination-controls" data-pagination-controls></div>
+</div>
 
-            <div class="col-md-2">
-                <input asp-for="Form.IdMarca" class="form-control" type="number" placeholder="Marca" required />
-            </div>
-
-            <div class="col-md-2">
-                <input asp-for="Form.PrecioVenta" class="form-control" type="number" step="0.01" placeholder="Precio" required />
-            </div>
-
-            <div class="col-md-1">
-                <input asp-for="Form.Stock" class="form-control" type="number" placeholder="Stock" required />
-            </div>
-
-            <div class="col-md-1">
-                <input asp-for="Form.StockMinimo" class="form-control" type="number" placeholder="Min" required />
-            </div>
-
-            <div class="col-md-10">
-                <input asp-for="Form.Descripcion" class="form-control" placeholder="Descripción" />
-            </div>
-
-            <div class="col-md-2">
-                <select asp-for="Form.Estado" class="form-control">
-                    <option value="true">Activo</option>
-                    <option value="false">Inactivo</option>
-                </select>
-            </div>
-
-            <div class="col-12">
-                <button class="btn btn-success">Crear</button>
-            </div>
-        </form>
+<div id="create-producto-modal" class="crud-modal-overlay">
+    <div class="crud-modal">
+        <div class="crud-modal-header">
+            <h3><i class="fa-solid fa-plus"></i> Nuevo producto</h3>
+            <button type="button" class="modal-close" data-close-modal>✕</button>
+        </div>
+        <div class="crud-modal-body">
+            <form asp-action="Create" method="post" class="row g-2">
+                @Html.AntiForgeryToken()
+                <div class="col-md-2"><input asp-for="Form.Codigo" class="form-control" placeholder="Código" required /></div>
+                <div class="col-md-3"><input asp-for="Form.Nombre" class="form-control" placeholder="Nombre" required /></div>
+                <div class="col-md-2"><input asp-for="Form.IdCategoria" class="form-control" type="number" placeholder="Categoría" required /></div>
+                <div class="col-md-2"><input asp-for="Form.IdMarca" class="form-control" type="number" placeholder="Marca" required /></div>
+                <div class="col-md-3"><input asp-for="Form.ImagenUrl" class="form-control" placeholder="URL imagen" /></div>
+                <div class="col-md-2"><input asp-for="Form.PrecioVenta" class="form-control" type="number" step="0.01" placeholder="Precio" required /></div>
+                <div class="col-md-2"><input asp-for="Form.Stock" class="form-control" type="number" placeholder="Stock" required /></div>
+                <div class="col-md-2"><input asp-for="Form.StockMinimo" class="form-control" type="number" placeholder="Stock mínimo" required /></div>
+                <div class="col-md-4"><select asp-for="Form.Estado" class="form-control"><option value="true">Activo</option><option value="false">Inactivo</option></select></div>
+                <div class="col-md-12"><input asp-for="Form.Descripcion" class="form-control" placeholder="Descripción" /></div>
+                <div class="col-12"><button class="btn btn-success"><i class="fa-solid fa-floppy-disk"></i> Crear</button></div>
+            </form>
+        </div>
     </div>
 </div>
 
-<table class="table table-striped table-sm">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Precio</th>
-            <th>Stock</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
+<div id="edit-producto-modal" class="crud-modal-overlay">
+    <div class="crud-modal">
+        <div class="crud-modal-header">
+            <h3><i class="fa-solid fa-pen"></i> Editar producto</h3>
+            <button type="button" class="modal-close" data-close-modal>✕</button>
+        </div>
+        <div class="crud-modal-body">
+            <form asp-action="Update" method="post" class="row g-2" id="edit-producto-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="IdProducto" id="edit-id" />
+                <div class="col-md-2"><input name="Codigo" id="edit-codigo" class="form-control" required /></div>
+                <div class="col-md-3"><input name="Nombre" id="edit-nombre" class="form-control" required /></div>
+                <div class="col-md-2"><input name="IdCategoria" id="edit-idcategoria" type="number" class="form-control" required /></div>
+                <div class="col-md-2"><input name="IdMarca" id="edit-idmarca" type="number" class="form-control" required /></div>
+                <div class="col-md-3"><input name="ImagenUrl" id="edit-imagenurl" class="form-control" placeholder="URL imagen" /></div>
+                <div class="col-md-2"><input name="PrecioVenta" id="edit-precio" type="number" step="0.01" class="form-control" required /></div>
+                <div class="col-md-2"><input name="Stock" id="edit-stock" type="number" class="form-control" required /></div>
+                <div class="col-md-2"><input name="StockMinimo" id="edit-stockminimo" type="number" class="form-control" required /></div>
+                <div class="col-md-4"><select name="Estado" id="edit-estado" class="form-control"><option value="true">Activo</option><option value="false">Inactivo</option></select></div>
+                <div class="col-md-12"><input name="Descripcion" id="edit-descripcion" class="form-control" /></div>
+                <div class="col-12"><button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar cambios</button></div>
+            </form>
+        </div>
+    </div>
+</div>
 
-    <tbody>
-        @foreach (var x in Model.Items)
-        {
-            <tr>
-                <td>@x.IdProducto</td>
-
-                <td>
-                    <input form="form-@x.IdProducto" name="Codigo" value="@x.Codigo" class="form-control form-control-sm" />
-                </td>
-
-                <td>
-                    <input form="form-@x.IdProducto" name="Nombre" value="@x.Nombre" class="form-control form-control-sm" />
-                </td>
-
-                <td>
-                    <input form="form-@x.IdProducto" name="PrecioVenta" value="@x.PrecioVenta" type="number" step="0.01" class="form-control form-control-sm" />
-                </td>
-
-                <td>
-                    <input form="form-@x.IdProducto" name="Stock" value="@x.Stock" type="number" class="form-control form-control-sm" />
-                </td>
-
-                <td>
-                    <span class="badge @(x.Estado ? "bg-success" : "bg-secondary")">
-                        @(x.Estado ? "Activo" : "Inactivo")
-                    </span>
-                </td>
-
-                <td class="d-flex gap-1">
-
-                    <!-- UPDATE -->
-                    <form id="form-@x.IdProducto" asp-action="Update" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="IdProducto" value="@x.IdProducto" />
-                        <input type="hidden" name="IdCategoria" value="@x.IdCategoria" />
-                        <input type="hidden" name="IdMarca" value="@x.IdMarca" />
-                        <input type="hidden" name="Descripcion" value="@x.Descripcion" />
-                        <input type="hidden" name="StockMinimo" value="@x.StockMinimo" />
-                        <input type="hidden" name="ImagenUrl" value="@x.ImagenUrl" />
-                        <input type="hidden" name="Estado" value="@x.Estado.ToString().ToLower()" />
-                        <button class="btn btn-primary btn-sm">Guardar</button>
-                    </form>
-
-                    <!-- TOGGLE -->
-                    <form asp-action="ToggleEstado" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@x.IdProducto" />
-                        <input type="hidden" name="estadoActual" value="@x.Estado.ToString().ToLower()" />
-                        <button class="btn btn-warning btn-sm">Estado</button>
-                    </form>
-
-                    <!-- DELETE -->
-                    <form asp-action="Delete" method="post" onsubmit="return confirm('¿Eliminar producto?');">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@x.IdProducto" />
-                        <button class="btn btn-danger btn-sm">Eliminar</button>
-                    </form>
-
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-open-modal="edit-producto-modal"]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const get = (k) => btn.getAttribute(`data-${k}`) || '';
+                document.getElementById('edit-id').value = get('id');
+                document.getElementById('edit-codigo').value = get('codigo');
+                document.getElementById('edit-nombre').value = get('nombre');
+                document.getElementById('edit-idcategoria').value = get('idcategoria');
+                document.getElementById('edit-idmarca').value = get('idmarca');
+                document.getElementById('edit-imagenurl').value = get('imagenurl');
+                document.getElementById('edit-precio').value = get('precio');
+                document.getElementById('edit-stock').value = get('stock');
+                document.getElementById('edit-stockminimo').value = get('stockminimo');
+                document.getElementById('edit-descripcion').value = get('descripcion');
+                document.getElementById('edit-estado').value = get('estado');
+            });
+        });
+    </script>
+}

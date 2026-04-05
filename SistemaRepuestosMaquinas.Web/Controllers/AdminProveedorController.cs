@@ -33,6 +33,20 @@ public class AdminProveedorController(ApiClient apiClient) : AdminBaseController
             : RedirectWithMessage(nameof(Index), "AdminProveedor", "No se pudo crear el proveedor.", true);
     }
 
+
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Update(AdminProveedorItem item, CancellationToken cancellationToken)
+    {
+        if (!TryAuthorizeAdmin(out var unauthorized)) return unauthorized!;
+
+        var response = await ApiClient.PutAsync($"api/proveedor/{item.IdProveedor}", item, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? RedirectWithMessage(nameof(Index), "AdminProveedor", "Proveedor actualizado.")
+            : RedirectWithMessage(nameof(Index), "AdminProveedor", "No se pudo actualizar el proveedor.", true);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)

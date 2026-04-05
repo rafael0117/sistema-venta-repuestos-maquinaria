@@ -1,7 +1,7 @@
 @model SistemaRepuestosMaquinas.Web.Models.AdminVentaPageViewModel
 @{ ViewData["Title"] = "Admin Ventas"; }
-<h1 class="mb-3">Admin · Ventas</h1>
+<h1 class="mb-3"><i class="fa-solid fa-cash-register"></i> Admin · Ventas</h1>
 @if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert @(Model.IsError?"alert-danger":"alert-success")">@Model.Message</div> }
-<table class="table table-striped"><thead><tr><th>Id</th><th>Cliente</th><th>Fecha</th><th>Total</th></tr></thead><tbody>
-@foreach (var x in Model.Items){<tr><td>@x.IdVenta</td><td>@x.IdCliente</td><td>@x.FechaVenta</td><td>S/ @x.Total</td></tr>}
-</tbody></table>
+<div class="table-wrap" data-paginated-table data-page-size="10"><table class="table table-striped"><thead><tr><th>Id</th><th>Cliente</th><th>Fecha</th><th>Total</th></tr></thead><tbody>
+@foreach (var x in Model.Items){<tr><td>@x.IdVenta</td><td>@x.IdCliente</td><td>@x.FechaVenta.ToString("dd/MM/yyyy HH:mm")</td><td>S/ @x.Total</td></tr>}
+</tbody></table><div class="pagination-controls" data-pagination-controls></div></div>

@@ -1,23 +1,56 @@
 @model SistemaRepuestosMaquinas.Web.Models.AdminDashboardViewModel
 @{ ViewData["Title"] = "Panel de Administración"; }
 
-<h1 class="mb-3">Panel de administración</h1>
-<p class="text-muted">CRUD robustos con edición, cambio de estado y eliminación.</p>
+<section class="admin-hero card mb-3">
+    <div class="card-body">
+        <h1>Panel de administración</h1>
+        <p class="text-muted">Controla inventario, clientes, pedidos y operaciones desde un panel más claro y moderno.</p>
+    </div>
+</section>
+
 @if (!string.IsNullOrWhiteSpace(Model.Message))
 {
     <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
 }
 
 <div class="row g-3 mb-4">
-    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Productos</h5><p class="fw-bold display-6">@Model.TotalProductos</p></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Clientes</h5><p class="fw-bold display-6">@Model.TotalClientes</p></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Pedidos</h5><p class="fw-bold display-6">@Model.TotalPedidos</p></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Utilidad mes</h5><p class="fw-bold display-6">S/ @Model.UtilidadBrutaMes.ToString("N2")</p></div></div></div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <span class="stat-label">Productos</span>
+                <p class="fw-bold stat-value">@Model.TotalProductos</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <span class="stat-label">Clientes</span>
+                <p class="fw-bold stat-value">@Model.TotalClientes</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <span class="stat-label">Pedidos</span>
+                <p class="fw-bold stat-value">@Model.TotalPedidos</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <span class="stat-label">Utilidad mensual</span>
+                <p class="fw-bold stat-value">S/ @Model.UtilidadBrutaMes.ToString("N2")</p>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="card">
+<div class="card admin-actions">
     <div class="card-header">Módulos CRUD de administración</div>
-    <div class="card-body d-grid gap-2">
+    <div class="card-body admin-actions-grid">
         <a class="btn btn-primary" asp-controller="AdminProducto" asp-action="Index">CRUD Productos</a>
         <a class="btn btn-primary" asp-controller="AdminCategoria" asp-action="Index">CRUD Categorías</a>
         <a class="btn btn-primary" asp-controller="AdminMarca" asp-action="Index">CRUD Marcas</a>

@@ -17,7 +17,7 @@
 <body>
     <header class="topbar">
         <div class="container nav-wrap">
-            <a class="brand" asp-controller="Home" asp-action="Index">🛠️ REPUESTOS MAQUINARIA</a>
+            <a class="brand" asp-controller="Home" asp-action="Index">🛠️ Repuestos Maquinaria Pro</a>
             <nav class="nav-links">
                 <a asp-controller="Home" asp-action="Index">Inicio</a>
                 <a asp-controller="Catalogo" asp-action="Index">Catálogo</a>
@@ -49,9 +49,11 @@
 
     <footer class="footer">
         <div class="container">
-            <p>© @DateTime.Now.Year SistemaRepuestosMaquinas · Soluciones para maquinaria industrial</p>
+            <p>© @DateTime.Now.Year Sistema Repuestos · Plataforma comercial para maquinaria industrial</p>
         </div>
     </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
 
     <script>
         (() => {

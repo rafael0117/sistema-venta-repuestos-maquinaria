@@ -2,37 +2,140 @@
     ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-6">Sistema de venta de repuestos</h1>
-    <p class="lead">Tienda web + gestión administrativa para repuestos de maquinaria.</p>
-</div>
+<section class="home-hero card">
+    <div class="hero-copy">
+        <span class="hero-pill">⚙️ Repuestos confiables para maquinaria pesada</span>
+        <h1>Encuentra piezas originales, ofertas y entrega rápida en un solo lugar.</h1>
+        <p>Mejoramos toda la experiencia para que comprar sea más simple: catálogo visual, promociones destacadas y recomendaciones para tu taller o flota.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" asp-controller="Catalogo" asp-action="Index">Comprar ahora</a>
+            <a class="btn btn-outline-secondary" asp-controller="Carrito" asp-action="Index">Ver carrito</a>
+        </div>
+    </div>
 
-<div class="row g-3 mt-2">
+    <div class="carousel" id="homeCarousel" aria-label="Promociones destacadas">
+        <div class="carousel-track">
+            <article class="carousel-slide is-active">
+                <div>
+                    <small>Oferta de la semana</small>
+                    <h3>Hasta 25% en filtros hidráulicos y kits de mantenimiento</h3>
+                    <p>Promoción válida en productos seleccionados para excavadoras y cargadores frontales.</p>
+                </div>
+            </article>
+            <article class="carousel-slide">
+                <div>
+                    <small>Nuevos ingresos</small>
+                    <h3>Stock renovado en sistemas de transmisión y frenos</h3>
+                    <p>Compra hoy y recibe despacho prioritario en pedidos confirmados antes de las 4:00 p. m.</p>
+                </div>
+            </article>
+            <article class="carousel-slide">
+                <div>
+                    <small>Beneficio para clientes frecuentes</small>
+                    <h3>Acumula puntos y canjéalos en futuras compras</h3>
+                    <p>Programa pensado para talleres y empresas de maquinaria con compras recurrentes.</p>
+                </div>
+            </article>
+        </div>
+
+        <div class="carousel-dots" role="tablist" aria-label="Selector de promociones">
+            <button class="dot is-active" type="button" data-slide="0" aria-label="Promoción 1"></button>
+            <button class="dot" type="button" data-slide="1" aria-label="Promoción 2"></button>
+            <button class="dot" type="button" data-slide="2" aria-label="Promoción 3"></button>
+        </div>
+    </div>
+</section>
+
+<section class="quick-cards row mt-3">
     <div class="col-md-4">
-        <div class="card h-100">
+        <div class="card feature-card">
             <div class="card-body">
-                <h5>Catálogo</h5>
-                <p>Explora productos con búsqueda y paginación.</p>
+                <h5>🛒 Catálogo inteligente</h5>
+                <p>Explora productos con mejor lectura visual y flujo de compra más claro.</p>
                 <a class="btn btn-primary" asp-controller="Catalogo" asp-action="Index">Ir al catálogo</a>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card h-100">
+        <div class="card feature-card">
             <div class="card-body">
-                <h5>Cuenta</h5>
-                <p>Regístrate o inicia sesión para operar con token JWT.</p>
-                <a class="btn btn-outline-primary" asp-controller="Cuenta" asp-action="Index">Ir a cuenta</a>
+                <h5>👤 Cuenta y pedidos</h5>
+                <p>Gestiona tu sesión, historial y seguimiento de pedidos en un solo punto.</p>
+                <a class="btn btn-outline-secondary" asp-controller="Cuenta" asp-action="Index">Ir a cuenta</a>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card h-100">
+        <div class="card feature-card">
             <div class="card-body">
-                <h5>Carrito</h5>
-                <p>Gestiona productos y ejecuta checkout.</p>
+                <h5>🚚 Compra más rápida</h5>
+                <p>Carrito optimizado para revisar montos, unidades y confirmar sin fricción.</p>
                 <a class="btn btn-success" asp-controller="Carrito" asp-action="Index">Ir a carrito</a>
             </div>
         </div>
     </div>
-</div>
+</section>
+
+<section class="home-offers card mt-3">
+    <div class="card-body">
+        <h2>Ofertas y categorías destacadas</h2>
+        <div class="offer-grid">
+            <article>
+                <h4>🔧 Tren de rodaje</h4>
+                <p>Rodillos, zapatas y cadenas con precios especiales por volumen.</p>
+            </article>
+            <article>
+                <h4>🧰 Mantenimiento preventivo</h4>
+                <p>Paquetes de filtros, aceites y sellos con descuento por combo.</p>
+            </article>
+            <article>
+                <h4>⚡ Sistema eléctrico</h4>
+                <p>Baterías, alternadores y sensores con garantía extendida.</p>
+            </article>
+            <article>
+                <h4>🏗️ Hidráulica pesada</h4>
+                <p>Bombas, cilindros y mangueras para trabajo de alto rendimiento.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const carousel = document.getElementById('homeCarousel');
+            if (!carousel) return;
+
+            const slides = Array.from(carousel.querySelectorAll('.carousel-slide'));
+            const dots = Array.from(carousel.querySelectorAll('.dot'));
+            let current = 0;
+            let timer;
+
+            const paint = (index) => {
+                slides.forEach((s, i) => s.classList.toggle('is-active', i === index));
+                dots.forEach((d, i) => d.classList.toggle('is-active', i === index));
+                current = index;
+            };
+
+            const next = () => paint((current + 1) % slides.length);
+
+            const start = () => {
+                clearInterval(timer);
+                timer = setInterval(next, 4500);
+            };
+
+            dots.forEach((dot) => {
+                dot.addEventListener('click', () => {
+                    paint(Number(dot.dataset.slide || 0));
+                    start();
+                });
+            });
+
+            carousel.addEventListener('mouseenter', () => clearInterval(timer));
+            carousel.addEventListener('mouseleave', start);
+
+            paint(0);
+            start();
+        })();
+    </script>
+}

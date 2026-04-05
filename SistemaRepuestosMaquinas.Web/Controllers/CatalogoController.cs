@@ -6,6 +6,8 @@ namespace SistemaRepuestosMaquinas.Web.Controllers;
 
 public class CatalogoController(ApiClient apiClient) : Controller
 {
+    private const string DefaultProductImage = "/images/producto-default.svg";
+
     [HttpGet]
     public async Task<IActionResult> Index([FromQuery] CatalogoPageViewModel filtro, CancellationToken cancellationToken)
     {
@@ -30,7 +32,7 @@ public class CatalogoController(ApiClient apiClient) : Controller
                 Stock = x.Stock,
                 Categoria = x.Categoria,
                 Marca = x.Marca,
-                ImagenUrl = x.ImagenUrl
+                ImagenUrl = ResolveImageUrl(x.ImagenUrl)
             }).ToList() ?? []
         };
 
@@ -58,11 +60,14 @@ public class CatalogoController(ApiClient apiClient) : Controller
             Stock = producto.Stock,
             Categoria = producto.Categoria,
             Marca = producto.Marca,
-            ImagenUrl = producto.ImagenUrl
+            ImagenUrl = ResolveImageUrl(producto.ImagenUrl)
         };
 
         return View(vm);
     }
+
+    private static string ResolveImageUrl(string? imageUrl)
+        => string.IsNullOrWhiteSpace(imageUrl) ? DefaultProductImage : imageUrl;
 
     private sealed class CatalogoResponseDto
     {

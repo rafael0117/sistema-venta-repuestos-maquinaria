@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Mail;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +19,7 @@ public class CarritoController(
     ApplicationDbContext context,
     IMercadoPagoService mercadoPagoService,
     IOptions<MercadoPagoOptions> mercadoPagoOptions,
+    IOptions<PasswordRecoveryOptions> passwordRecoveryOptions,
     ILogger<CarritoController> logger) : ControllerBase
 {
     [HttpGet("cliente/{idCliente:int}")]
@@ -313,8 +316,77 @@ public class CarritoController(
         await context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
+        await SendOrderConfirmationEmailAsync(idCliente, pedido, carrito.Detalles, cancellationToken);
+
         return new ConfirmacionCheckoutResult(true, "Pedido registrado correctamente.", new PedidoData(pedido.IdPedido, pedido.EstadoPedido, pedido.Total, pedido.FechaPedido));
     }
+
+    private async Task SendOrderConfirmationEmailAsync(int idCliente, Pedido pedido, IEnumerable<CarritoDetalle> detalles, CancellationToken cancellationToken)
+    {
+        var options = passwordRecoveryOptions.Value;
+        if (!HasSmtpConfiguration(options))
+        {
+            logger.LogWarning("No hay configuración SMTP para enviar correo de pedido {PedidoId}.", pedido.IdPedido);
+            return;
+        }
+
+        var cliente = await context.Clientes
+            .AsNoTracking()
+            .Include(c => c.Usuario)
+            .Where(c => c.IdCliente == idCliente)
+            .Select(c => new
+            {
+                Nombre = c.Usuario != null ? $"{c.Usuario.Nombres} {c.Usuario.Apellidos}".Trim() : "Cliente",
+                Correo = c.Usuario != null ? c.Usuario.Correo : null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (cliente is null || string.IsNullOrWhiteSpace(cliente.Correo))
+            return;
+
+        var items = detalles.Select(d => new OrderEmailItemData(
+            ProductName: d.Producto?.Nombre ?? $"Producto {d.IdProducto}",
+            Quantity: d.Cantidad,
+            UnitPrice: d.PrecioUnitario,
+            SubTotal: d.Cantidad * d.PrecioUnitario)).ToList();
+
+        var html = EmailTemplateBuilder.BuildOrderConfirmationHtml(new OrderEmailData(
+            ClientName: cliente.Nombre,
+            OrderId: pedido.IdPedido,
+            OrderDateLocal: DateTime.Now,
+            DeliveryAddress: pedido.DireccionEntrega,
+            PaymentMethod: pedido.MetodoPago,
+            Total: pedido.Total,
+            Items: items));
+
+        try
+        {
+            using var smtp = new SmtpClient(options.SmtpHost, options.SmtpPort)
+            {
+                EnableSsl = options.UseSsl,
+                Credentials = new NetworkCredential(options.SmtpUser, options.SmtpPassword)
+            };
+
+            using var message = new MailMessage(options.FromEmail, cliente.Correo)
+            {
+                Subject = $"Confirmación de pedido #{pedido.IdPedido}",
+                Body = html,
+                IsBodyHtml = true
+            };
+
+            await smtp.SendMailAsync(message, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error enviando correo de confirmación para pedido {PedidoId}.", pedido.IdPedido);
+        }
+    }
+
+    private static bool HasSmtpConfiguration(PasswordRecoveryOptions options)
+        => !string.IsNullOrWhiteSpace(options.SmtpHost)
+           && !string.IsNullOrWhiteSpace(options.SmtpUser)
+           && !string.IsNullOrWhiteSpace(options.SmtpPassword)
+           && !string.IsNullOrWhiteSpace(options.FromEmail);
 
     private static int? ExtractClienteId(string? externalReference)
     {

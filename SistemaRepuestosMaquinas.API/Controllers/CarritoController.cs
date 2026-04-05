@@ -161,6 +161,111 @@ public class CarritoController(
         });
     }
 
+    [HttpPost("cliente/{idCliente:int}/confirmacion-checkout-pro")]
+    public async Task<IActionResult> ConfirmarCheckoutPro(int idCliente, [FromBody] ConfirmarCheckoutProRequest request, CancellationToken cancellationToken)
+    {
+        if (!string.Equals(request.Status, "approved", StringComparison.OrdinalIgnoreCase))
+        {
+            return Ok(new
+            {
+                pedidoCreado = false,
+                estado = request.Status ?? "pending",
+                message = "Pago aún no aprobado por Mercado Pago."
+            });
+        }
+
+        var carrito = await context.Carritos
+            .Include(x => x.Detalles)
+            .ThenInclude(x => x.Producto)
+            .FirstOrDefaultAsync(x => x.IdCliente == idCliente && x.Estado == "Abierto", cancellationToken);
+
+        if (carrito is null || carrito.Detalles.Count == 0)
+        {
+            var ultimoPedido = await context.Pedidos
+                .AsNoTracking()
+                .Where(x => x.IdCliente == idCliente)
+                .OrderByDescending(x => x.IdPedido)
+                .Select(x => new
+                {
+                    x.IdPedido,
+                    x.EstadoPedido,
+                    x.Total,
+                    x.FechaPedido
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return Ok(new
+            {
+                pedidoCreado = false,
+                estado = ultimoPedido?.EstadoPedido ?? "SinPedido",
+                pedido = ultimoPedido,
+                message = "No hay carrito abierto para procesar."
+            });
+        }
+
+        var productIds = carrito.Detalles.Select(x => x.IdProducto).Distinct().ToList();
+        var productos = await context.Productos.Where(x => productIds.Contains(x.IdProducto)).ToDictionaryAsync(x => x.IdProducto, cancellationToken);
+
+        foreach (var item in carrito.Detalles)
+        {
+            if (!productos.TryGetValue(item.IdProducto, out var p) || !p.Estado || p.Stock < item.Cantidad)
+                return BadRequest(new { message = $"Stock insuficiente para producto {item.IdProducto}." });
+        }
+
+        var direccion = string.IsNullOrWhiteSpace(request.DireccionEntrega)
+            ? "Dirección no especificada"
+            : request.DireccionEntrega.Trim();
+
+        var total = carrito.Detalles.Sum(x => x.Cantidad * x.PrecioUnitario);
+
+        await using var tx = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        var pedido = new Pedido
+        {
+            IdCliente = idCliente,
+            FechaPedido = DateTime.UtcNow,
+            Total = total,
+            EstadoPedido = "Pagado",
+            DireccionEntrega = direccion,
+            MetodoPago = "CHECKOUT_PRO"
+        };
+
+        context.Pedidos.Add(pedido);
+        await context.SaveChangesAsync(cancellationToken);
+
+        foreach (var item in carrito.Detalles)
+        {
+            var producto = productos[item.IdProducto];
+            producto.Stock -= item.Cantidad;
+
+            context.PedidoDetalles.Add(new PedidoDetalle
+            {
+                IdPedido = pedido.IdPedido,
+                IdProducto = item.IdProducto,
+                Cantidad = item.Cantidad,
+                PrecioUnitario = item.PrecioUnitario
+            });
+        }
+
+        carrito.Estado = "Cerrado";
+        await context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+
+        return Ok(new
+        {
+            pedidoCreado = true,
+            message = "Pedido registrado correctamente.",
+            pedido = new
+            {
+                pedido.IdPedido,
+                pedido.EstadoPedido,
+                pedido.Total,
+                pedido.FechaPedido
+            }
+        });
+    }
+
     public record AddCarritoItemRequest(int IdProducto, int Cantidad);
     public record UpdateCarritoItemRequest(int Cantidad);
+    public record ConfirmarCheckoutProRequest(string? Status, string? PaymentId, string? PreferenceId, string? DireccionEntrega);
 }

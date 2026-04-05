@@ -12,6 +12,7 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 public class CategoriaController(ApplicationDbContext context) : ControllerBase
 {
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
         var data = await context.Categorias.AsNoTracking().OrderBy(x => x.Nombre).ToListAsync(cancellationToken);

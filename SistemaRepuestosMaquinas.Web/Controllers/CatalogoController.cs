@@ -13,6 +13,8 @@ public class CatalogoController(ApiClient apiClient) : Controller
     {
         var query = $"api/producto?Texto={Uri.EscapeDataString(filtro.Texto ?? string.Empty)}&IdCategoria={filtro.IdCategoria}&IdMarca={filtro.IdMarca}&Page={filtro.Page}&PageSize={filtro.PageSize}";
         var data = await apiClient.GetAsync<CatalogoResponseDto>(query, cancellationToken);
+        var categorias = await apiClient.GetAsync<List<CatalogOptionDto>>("api/categoria", cancellationToken) ?? [];
+        var marcas = await apiClient.GetAsync<List<CatalogOptionDto>>("api/marca", cancellationToken) ?? [];
 
         var vm = new CatalogoPageViewModel
         {
@@ -22,6 +24,14 @@ public class CatalogoController(ApiClient apiClient) : Controller
             Page = data?.Page ?? filtro.Page,
             PageSize = data?.PageSize ?? filtro.PageSize,
             Total = data?.Total ?? 0,
+            Categorias = categorias
+                .Where(x => x.Estado)
+                .Select(x => new CatalogOptionItem { Id = x.Id, Nombre = x.Nombre ?? string.Empty })
+                .ToList(),
+            Marcas = marcas
+                .Where(x => x.Estado)
+                .Select(x => new CatalogOptionItem { Id = x.Id, Nombre = x.Nombre ?? string.Empty })
+                .ToList(),
             Productos = data?.Data?.Select(x => new ProductoCatalogoItemViewModel
             {
                 IdProducto = x.IdProducto,
@@ -88,5 +98,14 @@ public class CatalogoController(ApiClient apiClient) : Controller
         public string? Categoria { get; set; }
         public string? Marca { get; set; }
         public string? ImagenUrl { get; set; }
+    }
+
+    private sealed class CatalogOptionDto
+    {
+        public int IdCategoria { get; set; }
+        public int IdMarca { get; set; }
+        public string? Nombre { get; set; }
+        public bool Estado { get; set; } = true;
+        public int Id => IdCategoria != 0 ? IdCategoria : IdMarca;
     }
 }

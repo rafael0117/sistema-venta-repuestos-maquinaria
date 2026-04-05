@@ -27,4 +27,7 @@ public class ConfirmacionPagoViewModel
     public string? PaymentId { get; set; }
     public string? PreferenceId { get; set; }
     public bool IsApproved { get; set; }
+    public bool PedidoRegistrado { get; set; }
+    public int? IdPedido { get; set; }
+    public string? Message { get; set; }
 }

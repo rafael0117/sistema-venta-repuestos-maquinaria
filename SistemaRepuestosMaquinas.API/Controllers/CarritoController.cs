@@ -165,12 +165,20 @@ public class CarritoController(
     [HttpPost("cliente/{idCliente:int}/confirmacion-checkout-pro")]
     public async Task<IActionResult> ConfirmarCheckoutPro(int idCliente, [FromBody] ConfirmarCheckoutProRequest request, CancellationToken cancellationToken)
     {
-        if (!string.Equals(request.Status, "approved", StringComparison.OrdinalIgnoreCase))
+        var status = request.Status;
+        if (!string.Equals(status, "approved", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(request.PaymentId))
+        {
+            var lookup = await mercadoPagoService.GetPaymentByIdAsync(request.PaymentId, cancellationToken);
+            if (lookup.IsSuccess)
+                status = lookup.Status;
+        }
+
+        if (!string.Equals(status, "approved", StringComparison.OrdinalIgnoreCase))
         {
             return Ok(new
             {
                 pedidoCreado = false,
-                estado = request.Status ?? "pending",
+                estado = status ?? "pending",
                 message = "Pago aún no aprobado por Mercado Pago."
             });
         }

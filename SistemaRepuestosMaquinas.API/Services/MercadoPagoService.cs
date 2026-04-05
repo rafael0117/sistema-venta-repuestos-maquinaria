@@ -44,8 +44,12 @@ public class MercadoPagoService(IOptions<MercadoPagoOptions> options) : IMercado
             }
         };
 
-        if (!string.IsNullOrWhiteSpace(config.WebhookNotificationUrl))
-            payload["notification_url"] = config.WebhookNotificationUrl;
+        if (Uri.TryCreate(config.WebhookNotificationUrl, UriKind.Absolute, out var webhookUri) &&
+            (webhookUri.Scheme == Uri.UriSchemeHttps || webhookUri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)) &&
+            !webhookUri.Host.Contains("TU-DOMINIO", StringComparison.OrdinalIgnoreCase))
+        {
+            payload["notification_url"] = webhookUri.ToString();
+        }
 
         using var client = BuildHttpClient(config.AccessToken);
 

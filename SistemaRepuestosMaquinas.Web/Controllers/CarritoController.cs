@@ -44,8 +44,10 @@ public class CarritoController(ApiClient apiClient) : Controller
 
         var response = await apiClient.PostAsync($"api/carrito/cliente/{idCliente.Value}/items", new { IdProducto = idProducto, Cantidad = cantidad }, cancellationToken);
         return response.IsSuccessStatusCode
-            ? RedirectWithMessage("Producto agregado al carrito.", false, idCliente, returnUrl)
-            : RedirectWithMessage("No se pudo agregar al carrito (verifica sesión, producto y stock).", true, idCliente, returnUrl);
+            ? RedirectWithMessage("No se pudo agregar al carrito (verifica sesión, producto y stock).", true, idCliente, returnUrl)
+            : RedirectWithMessage("Producto agregado al carrito.", false, idCliente, returnUrl);
+
+
     }
 
     [HttpPost]

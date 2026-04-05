@@ -8,7 +8,16 @@ public class CatalogoPageViewModel
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 12;
     public int Total { get; set; }
+    public int TotalPages => PageSize <= 0 ? 1 : Math.Max(1, (int)Math.Ceiling(Total / (double)PageSize));
+    public List<CatalogOptionItem> Categorias { get; set; } = [];
+    public List<CatalogOptionItem> Marcas { get; set; } = [];
     public List<ProductoCatalogoItemViewModel> Productos { get; set; } = [];
+}
+
+public class CatalogOptionItem
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
 }
 
 public class ProductoCatalogoItemViewModel

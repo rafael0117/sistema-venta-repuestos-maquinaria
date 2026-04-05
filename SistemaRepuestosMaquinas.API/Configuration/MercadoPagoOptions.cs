@@ -6,4 +6,5 @@ public class MercadoPagoOptions
     public string PublicKey { get; set; } = string.Empty;
     public string AccessToken { get; set; } = string.Empty;
     public string WebAppBaseUrl { get; set; } = "https://localhost:7002";
+    public string? WebhookNotificationUrl { get; set; }
 }

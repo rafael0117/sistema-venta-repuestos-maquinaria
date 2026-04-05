@@ -44,10 +44,8 @@ public class CarritoController(ApiClient apiClient) : Controller
 
         var response = await apiClient.PostAsync($"api/carrito/cliente/{idCliente.Value}/items", new { IdProducto = idProducto, Cantidad = cantidad }, cancellationToken);
         return response.IsSuccessStatusCode
-            ? RedirectWithMessage("No se pudo agregar al carrito (verifica sesión, producto y stock).", true, idCliente, returnUrl)
-            : RedirectWithMessage("Producto agregado al carrito.", false, idCliente, returnUrl);
-
-
+            ? RedirectWithMessage("Producto agregado al carrito.", false, idCliente, returnUrl)
+            : RedirectWithMessage("No se pudo agregar al carrito (verifica sesión, producto y stock).", true, idCliente, returnUrl);
     }
 
     [HttpPost]
@@ -110,11 +108,12 @@ public class CarritoController(ApiClient apiClient) : Controller
         if (string.IsNullOrWhiteSpace(checkout?.RedirectUrl))
             return RedirectWithMessage("No se recibió URL de pago de Mercado Pago.", true, idCliente);
 
+        HttpContext.Session.SetString("checkout_direccion", model.DireccionEntrega.Trim());
         return Redirect(checkout.RedirectUrl);
     }
 
     [HttpGet]
-    public IActionResult ConfirmacionCheckoutPro(string? status, string? payment_id, string? preference_id, string? collection_status)
+    public async Task<IActionResult> ConfirmacionCheckoutPro(string? status, string? payment_id, string? preference_id, string? collection_status, CancellationToken cancellationToken)
     {
         var estado = !string.IsNullOrWhiteSpace(status)
             ? status
@@ -127,6 +126,47 @@ public class CarritoController(ApiClient apiClient) : Controller
             PreferenceId = preference_id,
             IsApproved = string.Equals(estado, "approved", StringComparison.OrdinalIgnoreCase)
         };
+
+        var idCliente = TryGetSavedClienteId();
+        if (!vm.IsApproved || !idCliente.HasValue)
+            return View("Confirmacion", vm);
+
+        var direccionEntrega = HttpContext.Session.GetString("checkout_direccion") ?? string.Empty;
+
+        try
+        {
+            var token = HttpContext.Session.GetString("jwt");
+            apiClient.AttachJwt(token);
+
+            var response = await apiClient.PostAsync($"api/carrito/cliente/{idCliente.Value}/confirmacion-checkout-pro", new
+            {
+                Status = estado,
+                PaymentId = payment_id,
+                PreferenceId = preference_id,
+                DireccionEntrega = direccionEntrega
+            }, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                vm.Message = "Pago aprobado, pero no se pudo registrar el pedido automáticamente. Contacta al soporte.";
+                return View("Confirmacion", vm);
+            }
+
+            var resultado = await response.Content.ReadFromJsonAsync<ConfirmacionCheckoutDto>(cancellationToken);
+            vm.PedidoRegistrado = resultado?.PedidoCreado == true;
+            vm.IdPedido = resultado?.Pedido?.IdPedido;
+            vm.EstadoPedido = resultado?.Pedido?.EstadoPedido ?? vm.EstadoPedido;
+            vm.Message = resultado?.Message;
+
+            if (vm.PedidoRegistrado)
+            {
+                HttpContext.Session.Remove("checkout_direccion");
+            }
+        }
+        catch
+        {
+            vm.Message = "Pago aprobado, pero ocurrió un error al registrar el pedido.";
+        }
 
         return View("Confirmacion", vm);
     }
@@ -194,5 +234,18 @@ public class CarritoController(ApiClient apiClient) : Controller
         public string? RedirectUrl { get; set; }
         public string? PreferenceId { get; set; }
         public string? Message { get; set; }
+    }
+
+    private sealed class ConfirmacionCheckoutDto
+    {
+        public bool PedidoCreado { get; set; }
+        public string? Message { get; set; }
+        public PedidoConfirmadoDto? Pedido { get; set; }
+    }
+
+    private sealed class PedidoConfirmadoDto
+    {
+        public int IdPedido { get; set; }
+        public string? EstadoPedido { get; set; }
     }
 }

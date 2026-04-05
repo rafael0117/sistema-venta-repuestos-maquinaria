@@ -9,6 +9,24 @@
         {
             <h2 class="text-success">✅ Pago aprobado</h2>
             <p>Tu pago fue procesado correctamente por Mercado Pago.</p>
+
+            @if (Model.PedidoRegistrado)
+            {
+                <div class="alert alert-success">
+                    Pedido #<strong>@Model.IdPedido</strong> registrado con estado <strong>@Model.EstadoPedido</strong>.
+                    Puedes revisar el detalle en <a asp-controller="Pedido" asp-action="Index">Mis pedidos</a>.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    El pago fue aprobado pero el pedido no pudo registrarse automáticamente.
+                    @if (!string.IsNullOrWhiteSpace(Model.Message))
+                    {
+                        <span>@Model.Message</span>
+                    }
+                </div>
+            }
         }
         else
         {
@@ -16,10 +34,15 @@
             <p>Estado reportado por Mercado Pago: <strong>@Model.EstadoPedido</strong>.</p>
         }
 
+        @if (!string.IsNullOrWhiteSpace(Model.Message) && !Model.PedidoRegistrado)
+        {
+            <p class="text-muted">@Model.Message</p>
+        }
+
         <p class="mb-1">Payment ID: <strong>@(Model.PaymentId ?? "N/A")</strong></p>
         <p class="mb-3">Preference ID: <strong>@(Model.PreferenceId ?? "N/A")</strong></p>
 
         <a class="btn btn-primary" asp-controller="Catalogo" asp-action="Index">Seguir comprando</a>
-        <a class="btn btn-outline-secondary" asp-controller="Carrito" asp-action="Index">Volver al carrito</a>
+        <a class="btn btn-outline-secondary" asp-controller="Pedido" asp-action="Index">Ver mis pedidos</a>
     </div>
 </div>

@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Mail;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +18,9 @@ namespace SistemaRepuestosMaquinas.API.Controllers;
 public class CarritoController(
     ApplicationDbContext context,
     IMercadoPagoService mercadoPagoService,
-    IOptions<MercadoPagoOptions> mercadoPagoOptions) : ControllerBase
+    IOptions<MercadoPagoOptions> mercadoPagoOptions,
+    IOptions<PasswordRecoveryOptions> passwordRecoveryOptions,
+    ILogger<CarritoController> logger) : ControllerBase
 {
     [HttpGet("cliente/{idCliente:int}")]
     public async Task<IActionResult> Get(int idCliente, CancellationToken cancellationToken)
@@ -161,6 +165,242 @@ public class CarritoController(
         });
     }
 
+    [HttpPost("cliente/{idCliente:int}/confirmacion-checkout-pro")]
+    public async Task<IActionResult> ConfirmarCheckoutPro(int idCliente, [FromBody] ConfirmarCheckoutProRequest request, CancellationToken cancellationToken)
+    {
+        var status = request.Status;
+        if (!string.Equals(status, "approved", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(request.PaymentId))
+        {
+            var lookup = await mercadoPagoService.GetPaymentByIdAsync(request.PaymentId, cancellationToken);
+            if (lookup.IsSuccess)
+                status = lookup.Status;
+        }
+
+        if (!string.Equals(status, "approved", StringComparison.OrdinalIgnoreCase))
+        {
+            return Ok(new
+            {
+                pedidoCreado = false,
+                estado = status ?? "pending",
+                message = "Pago aún no aprobado por Mercado Pago."
+            });
+        }
+
+        var result = await RegistrarPedidoDesdeCarritoAsync(
+            idCliente,
+            request.DireccionEntrega,
+            request.PaymentId,
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("webhook/mercadopago")]
+    [HttpPost("webhook/mercadopago")]
+    public async Task<IActionResult> WebhookMercadoPago(
+        [FromQuery(Name = "id")] string? paymentId,
+        [FromQuery(Name = "data.id")] string? dataId,
+        [FromQuery(Name = "topic")] string? topic,
+        [FromQuery(Name = "type")] string? type,
+        CancellationToken cancellationToken)
+    {
+        var resolvedPaymentId = string.IsNullOrWhiteSpace(paymentId) ? dataId : paymentId;
+        var eventType = string.IsNullOrWhiteSpace(type) ? topic : type;
+
+        if (!string.Equals(eventType, "payment", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(resolvedPaymentId))
+            return Ok(new { received = true, ignored = true });
+
+        var lookup = await mercadoPagoService.GetPaymentByIdAsync(resolvedPaymentId, cancellationToken);
+        if (!lookup.IsSuccess)
+        {
+            logger.LogWarning("Webhook MP: no se pudo consultar payment {PaymentId}. {Message}", resolvedPaymentId, lookup.Message);
+            return Ok(new { received = true, processed = false, message = lookup.Message });
+        }
+
+        if (!string.Equals(lookup.Status, "approved", StringComparison.OrdinalIgnoreCase))
+            return Ok(new { received = true, processed = false, status = lookup.Status });
+
+        var idCliente = ExtractClienteId(lookup.ExternalReference);
+        if (!idCliente.HasValue)
+        {
+            logger.LogWarning("Webhook MP: external_reference inválido para payment {PaymentId}. ExternalReference={ExternalReference}", resolvedPaymentId, lookup.ExternalReference);
+            return Ok(new { received = true, processed = false, message = "external_reference inválido" });
+        }
+
+        var result = await RegistrarPedidoDesdeCarritoAsync(idCliente.Value, null, lookup.PaymentId, cancellationToken);
+        return Ok(new { received = true, processed = result.PedidoCreado, result.Message, result.Pedido });
+    }
+
+    private async Task<ConfirmacionCheckoutResult> RegistrarPedidoDesdeCarritoAsync(int idCliente, string? direccionEntrega, string? paymentId, CancellationToken cancellationToken)
+    {
+        var methodTag = string.IsNullOrWhiteSpace(paymentId) ? "CHECKOUT_PRO" : $"CHECKOUT_PRO:{paymentId}";
+
+        if (!string.IsNullOrWhiteSpace(paymentId))
+        {
+            var duplicado = await context.Pedidos
+                .AsNoTracking()
+                .Where(x => x.IdCliente == idCliente && x.MetodoPago == methodTag)
+                .OrderByDescending(x => x.IdPedido)
+                .Select(x => new PedidoData(x.IdPedido, x.EstadoPedido, x.Total, x.FechaPedido))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (duplicado is not null)
+            {
+                return new ConfirmacionCheckoutResult(true, "El pedido ya estaba registrado para este pago.", duplicado);
+            }
+        }
+
+        var carrito = await context.Carritos
+            .Include(x => x.Detalles)
+            .ThenInclude(x => x.Producto)
+            .FirstOrDefaultAsync(x => x.IdCliente == idCliente && x.Estado == "Abierto", cancellationToken);
+
+        if (carrito is null || carrito.Detalles.Count == 0)
+        {
+            var ultimoPedido = await context.Pedidos
+                .AsNoTracking()
+                .Where(x => x.IdCliente == idCliente)
+                .OrderByDescending(x => x.IdPedido)
+                .Select(x => new PedidoData(x.IdPedido, x.EstadoPedido, x.Total, x.FechaPedido))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new ConfirmacionCheckoutResult(false, "No hay carrito abierto para procesar.", ultimoPedido);
+        }
+
+        var productIds = carrito.Detalles.Select(x => x.IdProducto).Distinct().ToList();
+        var productos = await context.Productos.Where(x => productIds.Contains(x.IdProducto)).ToDictionaryAsync(x => x.IdProducto, cancellationToken);
+
+        foreach (var item in carrito.Detalles)
+        {
+            if (!productos.TryGetValue(item.IdProducto, out var p) || !p.Estado || p.Stock < item.Cantidad)
+                return new ConfirmacionCheckoutResult(false, $"Stock insuficiente para producto {item.IdProducto}.", null);
+        }
+
+        var direccion = string.IsNullOrWhiteSpace(direccionEntrega)
+            ? "Dirección no especificada"
+            : direccionEntrega.Trim();
+
+        var total = carrito.Detalles.Sum(x => x.Cantidad * x.PrecioUnitario);
+
+        await using var tx = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        var pedido = new Pedido
+        {
+            IdCliente = idCliente,
+            FechaPedido = DateTime.UtcNow,
+            Total = total,
+            EstadoPedido = "Pagado",
+            DireccionEntrega = direccion,
+            MetodoPago = methodTag
+        };
+
+        context.Pedidos.Add(pedido);
+        await context.SaveChangesAsync(cancellationToken);
+
+        foreach (var item in carrito.Detalles)
+        {
+            var producto = productos[item.IdProducto];
+            producto.Stock -= item.Cantidad;
+
+            context.PedidoDetalles.Add(new PedidoDetalle
+            {
+                IdPedido = pedido.IdPedido,
+                IdProducto = item.IdProducto,
+                Cantidad = item.Cantidad,
+                PrecioUnitario = item.PrecioUnitario
+            });
+        }
+
+        carrito.Estado = "Cerrado";
+        await context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+
+        await SendOrderConfirmationEmailAsync(idCliente, pedido, carrito.Detalles, cancellationToken);
+
+        return new ConfirmacionCheckoutResult(true, "Pedido registrado correctamente.", new PedidoData(pedido.IdPedido, pedido.EstadoPedido, pedido.Total, pedido.FechaPedido));
+    }
+
+    private async Task SendOrderConfirmationEmailAsync(int idCliente, Pedido pedido, IEnumerable<CarritoDetalle> detalles, CancellationToken cancellationToken)
+    {
+        var options = passwordRecoveryOptions.Value;
+        if (!HasSmtpConfiguration(options))
+        {
+            logger.LogWarning("No hay configuración SMTP para enviar correo de pedido {PedidoId}.", pedido.IdPedido);
+            return;
+        }
+
+        var cliente = await context.Clientes
+            .AsNoTracking()
+            .Include(c => c.Usuario)
+            .Where(c => c.IdCliente == idCliente)
+            .Select(c => new
+            {
+                Nombre = c.Usuario != null ? $"{c.Usuario.Nombres} {c.Usuario.Apellidos}".Trim() : "Cliente",
+                Correo = c.Usuario != null ? c.Usuario.Correo : null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (cliente is null || string.IsNullOrWhiteSpace(cliente.Correo))
+            return;
+
+        var items = detalles.Select(d => new OrderEmailItemData(
+            ProductName: d.Producto?.Nombre ?? $"Producto {d.IdProducto}",
+            Quantity: d.Cantidad,
+            UnitPrice: d.PrecioUnitario,
+            SubTotal: d.Cantidad * d.PrecioUnitario)).ToList();
+
+        var html = EmailTemplateBuilder.BuildOrderConfirmationHtml(new OrderEmailData(
+            ClientName: cliente.Nombre,
+            OrderId: pedido.IdPedido,
+            OrderDateLocal: DateTime.Now,
+            DeliveryAddress: pedido.DireccionEntrega,
+            PaymentMethod: pedido.MetodoPago,
+            Total: pedido.Total,
+            Items: items));
+
+        try
+        {
+            using var smtp = new SmtpClient(options.SmtpHost, options.SmtpPort)
+            {
+                EnableSsl = options.UseSsl,
+                Credentials = new NetworkCredential(options.SmtpUser, options.SmtpPassword)
+            };
+
+            using var message = new MailMessage(options.FromEmail, cliente.Correo)
+            {
+                Subject = $"Confirmación de pedido #{pedido.IdPedido}",
+                Body = html,
+                IsBodyHtml = true
+            };
+
+            await smtp.SendMailAsync(message, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error enviando correo de confirmación para pedido {PedidoId}.", pedido.IdPedido);
+        }
+    }
+
+    private static bool HasSmtpConfiguration(PasswordRecoveryOptions options)
+        => !string.IsNullOrWhiteSpace(options.SmtpHost)
+           && !string.IsNullOrWhiteSpace(options.SmtpUser)
+           && !string.IsNullOrWhiteSpace(options.SmtpPassword)
+           && !string.IsNullOrWhiteSpace(options.FromEmail);
+
+    private static int? ExtractClienteId(string? externalReference)
+    {
+        if (string.IsNullOrWhiteSpace(externalReference)) return null;
+
+        var tokens = externalReference.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length < 2) return null;
+
+        return int.TryParse(tokens[1], out var idCliente) ? idCliente : null;
+    }
+
     public record AddCarritoItemRequest(int IdProducto, int Cantidad);
     public record UpdateCarritoItemRequest(int Cantidad);
+    public record ConfirmarCheckoutProRequest(string? Status, string? PaymentId, string? PreferenceId, string? DireccionEntrega);
+    private sealed record PedidoData(int IdPedido, string EstadoPedido, decimal Total, DateTime FechaPedido);
+    private sealed record ConfirmacionCheckoutResult(bool PedidoCreado, string Message, PedidoData? Pedido);
 }

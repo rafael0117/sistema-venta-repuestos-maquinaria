@@ -3,6 +3,7 @@ using System.Net.Mail;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using SistemaRepuestosMaquinas.API.Configuration;
+using SistemaRepuestosMaquinas.API.Services;
 using SistemaRepuestosMaquinas.Business.DTOs;
 using SistemaRepuestosMaquinas.Business.Interfaces;
 
@@ -78,17 +79,14 @@ public class AuthController(
     private async Task SendResetEmailAsync(PasswordResetNotificationData notification, CancellationToken cancellationToken)
     {
         var options = passwordRecoveryOptions.Value;
-        if (string.IsNullOrWhiteSpace(options.SmtpHost) ||
-            string.IsNullOrWhiteSpace(options.SmtpUser) ||
-            string.IsNullOrWhiteSpace(options.SmtpPassword) ||
-            string.IsNullOrWhiteSpace(options.FromEmail) ||
-            string.IsNullOrWhiteSpace(options.FrontendResetUrl))
+        if (!HasSmtpConfiguration(options))
         {
             logger.LogWarning("PasswordRecovery no está configurado. Token generado para {Correo}.", notification.Correo);
             return;
         }
 
         var resetUrl = $"{options.FrontendResetUrl}?token={notification.Token}";
+        var htmlBody = EmailTemplateBuilder.BuildPasswordResetHtml(notification.NombreCompleto, resetUrl);
 
         using var client = new SmtpClient(options.SmtpHost, options.SmtpPort)
         {
@@ -99,12 +97,17 @@ public class AuthController(
         using var message = new MailMessage(options.FromEmail, notification.Correo)
         {
             Subject = "Recuperación de contraseña - Sistema de Repuestos",
-            Body = $"Hola {notification.NombreCompleto},\n\n" +
-                   "Recibimos una solicitud para restablecer tu contraseña. " +
-                   $"Haz clic en este enlace: {resetUrl}\n\n" +
-                   "Este enlace caduca en 30 minutos. Si no solicitaste este cambio, ignora este mensaje."
+            Body = htmlBody,
+            IsBodyHtml = true
         };
 
         await client.SendMailAsync(message, cancellationToken);
     }
+
+    private static bool HasSmtpConfiguration(PasswordRecoveryOptions options)
+        => !string.IsNullOrWhiteSpace(options.SmtpHost)
+           && !string.IsNullOrWhiteSpace(options.SmtpUser)
+           && !string.IsNullOrWhiteSpace(options.SmtpPassword)
+           && !string.IsNullOrWhiteSpace(options.FromEmail)
+           && !string.IsNullOrWhiteSpace(options.FrontendResetUrl);
 }

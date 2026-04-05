@@ -83,7 +83,15 @@ public class CarritoController(
         }
 
         await context.SaveChangesAsync(cancellationToken);
-        return Ok(detalle);
+        return Ok(new
+        {
+            detalle.IdCarritoDetalle,
+            detalle.IdCarrito,
+            detalle.IdProducto,
+            detalle.Cantidad,
+            detalle.PrecioUnitario,
+            SubTotal = detalle.Cantidad * detalle.PrecioUnitario
+        });
     }
 
     [HttpPut("items/{idCarritoDetalle:int}")]

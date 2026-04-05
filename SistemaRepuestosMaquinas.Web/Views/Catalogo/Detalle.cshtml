@@ -5,20 +5,39 @@
 
 <div class="product-detail card">
     <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-5">
+        <div class="detail-layout">
+            <div>
                 <div class="product-detail-image-wrap">
                     <img src="@Model.ImagenUrl" alt="@Model.Nombre" class="product-detail-image" />
                 </div>
+                <div class="detail-panel mt-2">
+                    <span class="detail-feature">🚚 Envío rápido a nivel nacional</span>
+                    <span class="detail-feature">✅ Garantía de calidad</span>
+                    <span class="detail-feature">💬 Soporte postventa</span>
+                </div>
             </div>
-            <div class="col-md-7">
+            <div>
                 <span class="product-badge">@Model.Categoria · @Model.Marca</span>
                 <h2 class="mb-1">@Model.Nombre</h2>
                 <p class="text-muted mb-2">Código: @Model.Codigo</p>
                 <p class="mb-3">@(string.IsNullOrWhiteSpace(Model.Descripcion) ? "Producto sin descripción registrada." : Model.Descripcion)</p>
 
                 <div class="product-detail-price">S/ @Model.PrecioVenta.ToString("N2")</div>
-                <p class="mb-3">Stock disponible: <strong>@Model.Stock</strong></p>
+                <p class="mb-3">
+                    <span class="stock-tag @(Model.Stock > 0 ? "in" : "out")">
+                        @(Model.Stock > 0 ? $"Stock disponible: {Model.Stock}" : "Sin stock disponible")
+                    </span>
+                </p>
+
+                <div class="detail-panel mb-3">
+                    <h4 class="mb-2">Detalle técnico</h4>
+                    <ul class="detail-list">
+                        <li><span>Marca</span><strong>@Model.Marca</strong></li>
+                        <li><span>Categoría</span><strong>@Model.Categoria</strong></li>
+                        <li><span>Código</span><strong>@Model.Codigo</strong></li>
+                        <li><span>Estado</span><strong>@(Model.Stock > 0 ? "Disponible" : "Agotado")</strong></li>
+                    </ul>
+                </div>
 
                 <form asp-controller="Carrito" asp-action="AgregarRapido" method="post" class="row g-2 mt-2" data-action-name="agregar este producto al carrito">
                     @Html.AntiForgeryToken()

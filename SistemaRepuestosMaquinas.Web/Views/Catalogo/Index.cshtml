@@ -77,28 +77,29 @@ else
         <div class="card h-100">
             <div class="card-body d-flex flex-column">
                 <div class="catalog-card-top">
-                    <span class="catalog-chip">@item.Categoria</span>
-                    <span class="small text-muted">#@item.Codigo</span>
+                    <span class="catalog-chip"><i class="fa-solid fa-tags me-1"></i>@item.Categoria</span>
+                    <span class="small text-muted"><i class="fa-solid fa-barcode me-1"></i>#@item.Codigo</span>
                 </div>
                 <img src="@item.ImagenUrl" alt="@item.Nombre" class="catalog-card-image mb-2" />
                 <h5 class="card-title">@item.Nombre</h5>
                 <div class="catalog-meta small">
-                    <p class="card-text mb-1"><strong>Marca:</strong> @item.Marca</p>
-                    <p class="card-text mb-1">@item.Descripcion</p>
+                    <p class="card-text mb-1"><strong><i class="fa-solid fa-industry me-1"></i>Marca:</strong> @item.Marca</p>
+                    <p class="card-text mb-1"><i class="fa-solid fa-circle-info me-1"></i>@item.Descripcion</p>
                 </div>
-                <p class="price-tag">S/ @item.PrecioVenta.ToString("N2")</p>
+                <p class="price-tag"><i class="fa-solid fa-money-bill-wave me-1"></i>S/ @item.PrecioVenta.ToString("N2")</p>
                 <span class="stock-tag @(item.Stock > 0 ? "in" : "out")">
+                    <i class="fa-solid @(item.Stock > 0 ? "fa-boxes-stacked" : "fa-box-open") me-1"></i>
                     @(item.Stock > 0 ? $"Stock disponible: {item.Stock}" : "Sin stock")
                 </span>
 
                 <div class="mt-auto d-flex gap-2">
-                    <a class="btn btn-outline-primary btn-sm" asp-controller="Catalogo" asp-action="Detalle" asp-route-idProducto="@item.IdProducto">Ver detalle</a>
+                    <a class="btn btn-outline-primary btn-sm" asp-controller="Catalogo" asp-action="Detalle" asp-route-idProducto="@item.IdProducto"><i class="fa-solid fa-eye me-1"></i>Ver detalle</a>
                     <form asp-controller="Carrito" asp-action="AgregarRapido" method="post" class="d-inline" data-action-name="agregar este producto al carrito">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="idProducto" value="@item.IdProducto" />
                         <input type="hidden" name="cantidad" value="1" />
                         <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
-                        <button class="btn btn-success btn-sm" type="submit" @(item.Stock <= 0 ? "disabled" : null)>Agregar al carrito</button>
+                        <button class="btn btn-success btn-sm" type="submit" @(item.Stock <= 0 ? "disabled" : null)><i class="fa-solid fa-cart-plus me-1"></i>Agregar al carrito</button>
                     </form>
                 </div>
             </div>

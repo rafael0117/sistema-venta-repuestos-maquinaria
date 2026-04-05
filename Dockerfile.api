@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY SistemaRepuestosMaquinas.sln ./
+COPY SistemaRepuestosMaquinas.API/SistemaRepuestosMaquinas.API.csproj SistemaRepuestosMaquinas.API/
+COPY SistemaRepuestosMaquinas.Business/SistemaRepuestosMaquinas.Business.csproj SistemaRepuestosMaquinas.Business/
+COPY SistemaRepuestosMaquinas.Data/SistemaRepuestosMaquinas.Data.csproj SistemaRepuestosMaquinas.Data/
+COPY SistemaRepuestosMaquinas.Entity/SistemaRepuestosMaquinas.Entity.csproj SistemaRepuestosMaquinas.Entity/
+COPY SistemaRepuestosMaquinas.Common/SistemaRepuestosMaquinas.Common.csproj SistemaRepuestosMaquinas.Common/
+RUN dotnet restore SistemaRepuestosMaquinas.API/SistemaRepuestosMaquinas.API.csproj
+
+COPY . .
+RUN dotnet publish SistemaRepuestosMaquinas.API/SistemaRepuestosMaquinas.API.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "SistemaRepuestosMaquinas.API.dll"]
